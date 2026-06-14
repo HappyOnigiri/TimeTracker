@@ -14,3 +14,12 @@ xcuserdata/
 
 # environment
 .envrc
+
+# AI agents
+.antigravitycli/
+.claude/
+.cursor/
+.copilot/
+
+# Temporary
+tmp/
