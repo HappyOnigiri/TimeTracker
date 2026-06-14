@@ -16,6 +16,9 @@ struct SettingsView: View {
     @State private var launchAtLogin = LoginItemService.isEnabled
     @State private var launchAtLoginError: String?
 
+    /// アプリのバージョン（CFBundleShortVersionString）。Info.plist を唯一の真実の源とする。
+    private static let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+
     /// 範囲内にクランプした分数のバインディング（数値入力の範囲外対策）。
     private var clampedMinutes: Binding<Int> {
         Binding(
@@ -74,6 +77,15 @@ struct SettingsView: View {
                     Text(launchAtLoginError)
                         .font(.caption)
                         .foregroundStyle(.red)
+                }
+            }
+            Section("情報") {
+                HStack {
+                    Text("バージョン")
+                    Spacer()
+                    Text(Self.appVersion)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
                 }
             }
         }
