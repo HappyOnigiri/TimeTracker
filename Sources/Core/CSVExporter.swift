@@ -5,7 +5,10 @@ enum CSVExporter {
     static let header = "project,start,end,duration_seconds"
 
     /// RFC 4180 準拠の CSV を生成する。日時は ISO 8601。計測中のログは除外する。
-    static func makeCSV(logs: [TimeLog], now: Date = Date()) -> String {
+    ///
+    /// `clipTo` を指定した場合、各ログの開始/終了をその範囲にクリップし、
+    /// duration を再計算する。範囲と重ならないログは除外する。
+    static func makeCSV(logs: [TimeLog], clipTo range: ClosedRange<Date>? = nil, now: Date = Date()) -> String {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
 
@@ -16,12 +19,16 @@ enum CSVExporter {
         var rows = [header]
         for log in sorted {
             guard let end = log.endDate else { continue }
+            let start = log.startDate
+            let clippedStart = range.map { max(start, $0.lowerBound) } ?? start
+            let clippedEnd = range.map { min(end, $0.upperBound) } ?? end
+            guard clippedEnd > clippedStart else { continue }
             let name = log.project?.name ?? "(削除済み)"
-            let duration = Int(end.timeIntervalSince(log.startDate).rounded())
+            let duration = Int(clippedEnd.timeIntervalSince(clippedStart).rounded())
             let fields = [
                 escape(name),
-                formatter.string(from: log.startDate),
-                formatter.string(from: end),
+                formatter.string(from: clippedStart),
+                formatter.string(from: clippedEnd),
                 String(duration)
             ]
             rows.append(fields.joined(separator: ","))

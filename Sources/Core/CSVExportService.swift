@@ -10,7 +10,11 @@ enum CSVExportService {
         case failed(String)
     }
 
-    static func export(logs: [TimeLog], suggestedName: String = "timelogs.csv") -> ExportResult {
+    static func export(
+        logs: [TimeLog],
+        clipTo range: ClosedRange<Date>? = nil,
+        suggestedName: String = "timelogs.csv"
+    ) -> ExportResult {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.commaSeparatedText]
         panel.nameFieldStringValue = suggestedName
@@ -19,7 +23,7 @@ enum CSVExportService {
         guard panel.runModal() == .OK, let url = panel.url else {
             return .cancelled
         }
-        let csv = CSVExporter.makeCSV(logs: logs)
+        let csv = CSVExporter.makeCSV(logs: logs, clipTo: range)
         do {
             try csv.write(to: url, atomically: true, encoding: .utf8)
             return .saved(url)

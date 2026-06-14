@@ -6,8 +6,8 @@ import SwiftUI
 struct DashboardView: View {
     @Query private var logs: [TimeLog]
 
-    @State private var startDate: Date = DashboardView.defaultStart
-    @State private var endDate: Date = Date()
+    /// 表示対象の月（その月の 1 日 0:00）。
+    @State private var selectedMonth: Date = DashboardView.currentMonthStart
     @State private var exportMessage: String?
 
     var body: some View {
@@ -33,12 +33,31 @@ struct DashboardView: View {
 
     private var controls: some View {
         HStack(alignment: .center, spacing: 12) {
-            DatePicker("開始", selection: $startDate, displayedComponents: .date)
-            DatePicker("終了", selection: $endDate, displayedComponents: .date)
-            Button("直近1ヶ月") {
-                startDate = DashboardView.defaultStart
-                endDate = Date()
+            Button {
+                shiftMonth(by: -1)
+            } label: {
+                Image(systemName: "chevron.left")
             }
+            .help("前の月")
+
+            Text(DashboardView.monthLabel(for: selectedMonth))
+                .font(.headline)
+                .monospacedDigit()
+                .frame(minWidth: 110)
+
+            Button {
+                shiftMonth(by: 1)
+            } label: {
+                Image(systemName: "chevron.right")
+            }
+            .help("次の月")
+            .disabled(isCurrentMonth)
+
+            Button("今月") {
+                selectedMonth = DashboardView.currentMonthStart
+            }
+            .disabled(isCurrentMonth)
+
             Spacer()
             Button("CSV 出力", systemImage: "square.and.arrow.up") {
                 exportCSV()
@@ -91,6 +110,14 @@ struct DashboardView: View {
                 .foregroundStyle(by: .value("プロジェクト", item.name))
             }
             .chartForegroundStyleScale(range: colorRange(for: dailyNames))
+            .chartXScale(domain: selectedMonth...monthEnd)
+            .chartXAxis {
+                AxisMarks(values: .stride(by: .day, count: 5)) { _ in
+                    AxisGridLine()
+                    AxisTick()
+                    AxisValueLabel(format: .dateTime.day())
+                }
+            }
             .chartYAxisLabel("時間")
             .frame(height: 260)
         }
@@ -98,18 +125,57 @@ struct DashboardView: View {
 
     // MARK: - 集計
 
-    private static var defaultStart: Date {
-        let calendar = Calendar.current
-        let monthAgo = calendar.date(byAdding: .month, value: -1, to: Date()) ?? Date()
-        return calendar.startOfDay(for: monthAgo)
+    /// 今月の 1 日 0:00。
+    private static var currentMonthStart: Date {
+        monthStart(for: Date())
     }
 
-    private var range: ClosedRange<Date> {
+    /// 指定日が属する月の 1 日 0:00。
+    private static func monthStart(for date: Date) -> Date {
         let calendar = Calendar.current
-        let lower = calendar.startOfDay(for: min(startDate, endDate))
-        let upperBase = calendar.startOfDay(for: max(startDate, endDate))
-        let upper = calendar.date(byAdding: .day, value: 1, to: upperBase) ?? upperBase
-        return lower...upper
+        let components = calendar.dateComponents([.year, .month], from: date)
+        return calendar.date(from: components) ?? calendar.startOfDay(for: date)
+    }
+
+    /// 「2026年6月」の日本式月ラベル。
+    private static func monthLabel(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "ja_JP")
+        formatter.dateFormat = "yyyy年M月"
+        return formatter.string(from: date)
+    }
+
+    /// CSV ファイル名用の月表記（例: 2026-06）。
+    private static func fileMonthLabel(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM"
+        return formatter.string(from: date)
+    }
+
+    private var isCurrentMonth: Bool {
+        selectedMonth == DashboardView.currentMonthStart
+    }
+
+    private func shiftMonth(by value: Int) {
+        let calendar = Calendar.current
+        guard let shifted = calendar.date(byAdding: .month, value: value, to: selectedMonth) else { return }
+        let next = DashboardView.monthStart(for: shifted)
+        // 未来の月へは進めない。
+        selectedMonth = min(next, DashboardView.currentMonthStart)
+    }
+
+    /// 選択中の月の終端（翌月 1 日 0:00）。グラフ X 軸の上限に使う。
+    private var monthEnd: Date {
+        let calendar = Calendar.current
+        return calendar.date(byAdding: .month, value: 1, to: selectedMonth) ?? selectedMonth
+    }
+
+    /// 選択中の月の範囲（その月の 1 日 0:00 〜 翌月 1 日 0:00）。
+    private var range: ClosedRange<Date> {
+        selectedMonth...monthEnd
     }
 
     private var filteredLogs: [TimeLog] {
@@ -142,7 +208,11 @@ struct DashboardView: View {
     }
 
     private func exportCSV() {
-        let result = CSVExportService.export(logs: filteredLogs)
+        let result = CSVExportService.export(
+            logs: filteredLogs,
+            clipTo: range,
+            suggestedName: "timelogs-\(DashboardView.fileMonthLabel(for: selectedMonth)).csv"
+        )
         switch result {
         case .saved(let url):
             exportMessage = "保存しました: \(url.lastPathComponent)"

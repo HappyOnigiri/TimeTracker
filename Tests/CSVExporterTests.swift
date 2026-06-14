@@ -26,6 +26,32 @@ struct CSVExporterTests {
         #expect(lines.count == 1) // ヘッダのみ
     }
 
+    @Test("clipTo 指定で月境界をまたぐログがクリップされる")
+    func clipsToRange() {
+        let project = Project(name: "実装")
+        // 5/31 23:00 〜 6/1 02:00（3時間）を 6 月でクリップ → 6/1 00:00〜02:00 の 2 時間。
+        let log = TimeLog(project: project,
+                          startDate: TestSupport.date(2025, 5, 31, 23, 0),
+                          endDate: TestSupport.date(2025, 6, 1, 2, 0))
+        let june = TestSupport.date(2025, 6, 1, 0, 0)...TestSupport.date(2025, 7, 1, 0, 0)
+        let csv = CSVExporter.makeCSV(logs: [log], clipTo: june)
+        let lines = csv.split(separator: "\n", omittingEmptySubsequences: true)
+        #expect(lines.count == 2)
+        #expect(lines[1].hasSuffix(",7200"))
+    }
+
+    @Test("clipTo 範囲と重ならないログは除外される")
+    func excludesNonOverlapping() {
+        let project = Project(name: "実装")
+        let log = TimeLog(project: project,
+                          startDate: TestSupport.date(2025, 5, 10, 9, 0),
+                          endDate: TestSupport.date(2025, 5, 10, 10, 0))
+        let june = TestSupport.date(2025, 6, 1, 0, 0)...TestSupport.date(2025, 7, 1, 0, 0)
+        let csv = CSVExporter.makeCSV(logs: [log], clipTo: june)
+        let lines = csv.split(separator: "\n", omittingEmptySubsequences: true)
+        #expect(lines.count == 1) // ヘッダのみ
+    }
+
     @Test("カンマを含む名前はクォートでエスケープされる")
     func escapesComma() {
         let project = Project(name: "A, B")
