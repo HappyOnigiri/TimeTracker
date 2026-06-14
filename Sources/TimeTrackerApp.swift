@@ -27,7 +27,7 @@ struct TimeTrackerApp: App {
                 .environment(navigation)
                 .modelContainer(container)
         } label: {
-            Image(systemName: engine.isAnyRunning ? "stopwatch.fill" : "stopwatch")
+            Image(nsImage: MenuBarIcon.image(forColorHexes: engine.runningColorHexes))
                 .accessibilityLabel(engine.isAnyRunning ? "測定中" : "全停止中")
                 .onAppear { engine.configure(context: container.mainContext) }
         }

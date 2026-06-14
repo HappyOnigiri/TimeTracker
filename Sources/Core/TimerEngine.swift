@@ -11,6 +11,9 @@ import SwiftData
 final class TimerEngine {
     private(set) var runningProjectIDs: Set<UUID> = []
 
+    /// 測定中プロジェクトの色（sortOrder 順）。メニューバーアイコンの描画に使う。
+    private(set) var runningColorHexes: [String] = []
+
     @ObservationIgnored private var context: ModelContext?
     @ObservationIgnored private var settings = AppSettings()
     @ObservationIgnored private var idleTimer: Timer?
@@ -131,7 +134,13 @@ final class TimerEngine {
     }
 
     private func refreshRunningState() {
-        runningProjectIDs = Set(fetchOpenLogs().compactMap { $0.project?.id })
+        var seen = Set<UUID>()
+        let runningProjects = fetchOpenLogs()
+            .compactMap { $0.project }
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .filter { seen.insert($0.id).inserted }
+        runningProjectIDs = seen
+        runningColorHexes = runningProjects.map(\.colorHex)
     }
 
     private func save() {
