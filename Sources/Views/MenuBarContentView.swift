@@ -53,7 +53,8 @@ struct MenuBarContentView: View {
         let running = engine.isRunning(project)
         return HStack {
             Circle()
-                .fill(running ? Color.green : project.color.opacity(0.5))
+                .fill(project.color)
+                .opacity(running ? 1 : 0.4)
                 .frame(width: 8, height: 8)
             Text(project.name)
                 .lineLimit(1)
