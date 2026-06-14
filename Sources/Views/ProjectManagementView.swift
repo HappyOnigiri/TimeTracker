@@ -33,7 +33,16 @@ struct ProjectManagementView: View {
                     Text(project.name)
                     Spacer()
                     if engine.isRunning(project) {
-                        Text("測定中").font(.caption).foregroundStyle(.green)
+                        if let start = engine.runningStartDate(for: project) {
+                            TimelineView(.periodic(from: start, by: 1)) { context in
+                                let elapsed = context.date.timeIntervalSince(start)
+                                Text("測定中 " + DurationFormatter.clockString(from: elapsed))
+                                    .font(.caption.monospacedDigit())
+                                    .foregroundStyle(.green)
+                            }
+                        } else {
+                            Text("測定中").font(.caption).foregroundStyle(.green)
+                        }
                     }
                 }
                 .tag(project.id)
