@@ -10,6 +10,8 @@ struct ProjectManagementView: View {
     @State private var selection: Project.ID?
     @State private var editing: Project?
     @State private var showingEditor = false
+    @State private var projectToDelete: Project?
+    @State private var showingDeleteConfirm = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -18,40 +20,48 @@ struct ProjectManagementView: View {
             toolbar
         }
         .frame(minWidth: 420, minHeight: 360)
+        .background(Color(NSColor.windowBackgroundColor))
         .sheet(isPresented: $showingEditor) {
             ProjectEditorView(project: editing) { name, colorHex in
                 save(name: name, colorHex: colorHex)
             }
+        }
+        .alert("プロジェクトの削除", isPresented: $showingDeleteConfirm, presenting: projectToDelete) { project in
+            Button("キャンセル", role: .cancel) { }
+            Button("削除", role: .destructive) { delete(project) }
+        } message: { project in
+            Text("「\(project.name)」を削除してもよろしいですか？この操作は取り消せません。")
         }
     }
 
     private var list: some View {
         List(selection: $selection) {
             ForEach(projects) { project in
-                HStack {
-                    Circle().fill(project.color).frame(width: 10, height: 10)
+                HStack(spacing: 12) {
+                    Circle()
+                        .fill(project.color)
+                        .frame(width: 12, height: 12)
+                        .shadow(color: project.color.opacity(0.4), radius: 2, x: 0, y: 1)
+
                     Text(project.name)
+                        .font(.system(.body, design: .rounded))
+                        .fontWeight(.medium)
+
                     Spacer()
+
                     if engine.isRunning(project) {
-                        if let start = engine.runningStartDate(for: project) {
-                            TimelineView(.periodic(from: start, by: 1)) { context in
-                                let elapsed = context.date.timeIntervalSince(start)
-                                Text("測定中 " + DurationFormatter.clockString(from: elapsed))
-                                    .font(.caption.monospacedDigit())
-                                    .foregroundStyle(.green)
-                            }
-                        } else {
-                            Text("測定中").font(.caption).foregroundStyle(.green)
-                        }
+                        runningBadge(for: project)
                     }
                 }
+                .padding(.vertical, 6)
                 .tag(project.id)
                 .contextMenu {
                     Button("編集") { beginEdit(project) }
-                    Button("削除", role: .destructive) { delete(project) }
+                    Button("削除", role: .destructive) { confirmDelete(project) }
                 }
             }
         }
+        .listStyle(.inset)
         .overlay {
             if projects.isEmpty {
                 ContentUnavailableView("プロジェクトがありません", systemImage: "folder.badge.plus",
@@ -60,29 +70,66 @@ struct ProjectManagementView: View {
         }
     }
 
+    @ViewBuilder
+    private func runningBadge(for project: Project) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "timer")
+            if let start = engine.runningStartDate(for: project) {
+                TimelineView(.periodic(from: start, by: 1)) { context in
+                    let elapsed = context.date.timeIntervalSince(start)
+                    Text(DurationFormatter.clockString(from: elapsed))
+                        .font(.caption.monospacedDigit())
+                        .bold()
+                }
+            } else {
+                Text("測定中")
+                    .font(.caption)
+                    .bold()
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Color.green.opacity(0.15))
+        .foregroundStyle(.green)
+        .clipShape(Capsule())
+    }
+
     private var toolbar: some View {
         HStack {
-            Button {
-                beginAdd()
-            } label: {
-                Image(systemName: "plus").toolbarIconShape()
+            Button(action: beginAdd) {
+                Label("追加", systemImage: "plus.circle.fill")
+                    .font(.system(.body, design: .rounded).weight(.medium))
+                    .foregroundColor(.accentColor)
             }
-            Button {
-                if let project = selectedProject { beginEdit(project) }
-            } label: {
-                Image(systemName: "pencil").toolbarIconShape()
-            }
-            .disabled(selectedProject == nil)
-            Button {
-                if let project = selectedProject { delete(project) }
-            } label: {
-                Image(systemName: "minus").toolbarIconShape()
-            }
-            .disabled(selectedProject == nil)
+            .buttonStyle(.plain)
+
             Spacer()
+
+            if selectedProject != nil {
+                HStack(spacing: 16) {
+                    Button {
+                        if let project = selectedProject { beginEdit(project) }
+                    } label: {
+                        Image(systemName: "pencil")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("編集")
+
+                    Button {
+                        if let project = selectedProject { confirmDelete(project) }
+                    } label: {
+                        Image(systemName: "trash")
+                            .foregroundColor(.red)
+                    }
+                    .buttonStyle(.plain)
+                    .help("削除")
+                }
+            }
         }
-        .padding(8)
-        .buttonStyle(.borderless)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(Color(NSColor.controlBackgroundColor))
     }
 
     private var selectedProject: Project? {
@@ -97,6 +144,11 @@ struct ProjectManagementView: View {
     private func beginEdit(_ project: Project) {
         editing = project
         showingEditor = true
+    }
+
+    private func confirmDelete(_ project: Project) {
+        projectToDelete = project
+        showingDeleteConfirm = true
     }
 
     private func save(name: String, colorHex: String) {
@@ -119,15 +171,6 @@ struct ProjectManagementView: View {
     }
 }
 
-private extension Image {
-    /// ツールバーアイコンのクリック領域を、アイコン周辺の余白まで広げる。
-    func toolbarIconShape() -> some View {
-        self
-            .frame(width: 28, height: 28)
-            .contentShape(Rectangle())
-    }
-}
-
 /// プロジェクトの新規作成/編集シート。
 private struct ProjectEditorView: View {
     let project: Project?
@@ -145,40 +188,66 @@ private struct ProjectEditorView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 20) {
             Text(project == nil ? "プロジェクトを追加" : "プロジェクトを編集")
-                .font(.headline)
-            TextField("プロジェクト名", text: $name)
-                .textFieldStyle(.roundedBorder)
-            colorPicker
+                .font(.system(.title3, design: .rounded).bold())
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("プロジェクト名")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                TextField("名前を入力", text: $name)
+                    .textFieldStyle(.roundedBorder)
+                    .controlSize(.large)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("テーマカラー")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                colorPicker
+            }
+
+            Spacer().frame(height: 10)
+
             HStack {
-                Spacer()
                 Button("キャンセル") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                Spacer()
                 Button("保存") {
                     onSave(name, colorHex)
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
+                .buttonStyle(.borderedProminent)
                 .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
-        .padding(20)
-        .frame(width: 360)
+        .padding(24)
+        .frame(width: 380)
     }
 
     private var colorPicker: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
             ForEach(ProjectPalette.colors, id: \.self) { hex in
                 Circle()
                     .fill(Color(hex: hex) ?? .gray)
-                    .frame(width: 22, height: 22)
+                    .frame(width: 24, height: 24)
+                    .shadow(color: (Color(hex: hex) ?? .gray).opacity(0.3), radius: 2, x: 0, y: 1)
                     .overlay {
                         if hex == colorHex {
-                            Circle().stroke(Color.primary, lineWidth: 2)
+                            Circle()
+                                .stroke(Color.primary.opacity(0.8), lineWidth: 3)
+                                .padding(-4)
                         }
                     }
-                    .onTapGesture { colorHex = hex }
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+                            colorHex = hex
+                        }
+                    }
             }
         }
+        .padding(.vertical, 4)
     }
 }
