@@ -56,18 +56,18 @@ struct ProjectManagementView: View {
             Button {
                 beginAdd()
             } label: {
-                Image(systemName: "plus")
+                Image(systemName: "plus").toolbarIconShape()
             }
             Button {
                 if let project = selectedProject { beginEdit(project) }
             } label: {
-                Image(systemName: "pencil")
+                Image(systemName: "pencil").toolbarIconShape()
             }
             .disabled(selectedProject == nil)
             Button {
                 if let project = selectedProject { delete(project) }
             } label: {
-                Image(systemName: "minus")
+                Image(systemName: "minus").toolbarIconShape()
             }
             .disabled(selectedProject == nil)
             Spacer()
@@ -107,6 +107,15 @@ struct ProjectManagementView: View {
         engine.stop(project)
         context.delete(project)
         try? context.save()
+    }
+}
+
+private extension Image {
+    /// ツールバーアイコンのクリック領域を、アイコン周辺の余白まで広げる。
+    func toolbarIconShape() -> some View {
+        self
+            .frame(width: 28, height: 28)
+            .contentShape(Rectangle())
     }
 }
 
