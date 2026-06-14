@@ -59,6 +59,13 @@ struct MenuBarContentView: View {
             Text(project.name)
                 .lineLimit(1)
             Spacer()
+            if running, let start = engine.runningStartDate(for: project) {
+                TimelineView(.periodic(from: start, by: 1)) { context in
+                    Text(DurationFormatter.clockString(from: context.date.timeIntervalSince(start)))
+                        .font(.callout.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+            }
             Button(running ? "停止" : "開始") {
                 engine.toggle(project)
             }

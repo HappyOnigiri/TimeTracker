@@ -14,6 +14,10 @@ final class TimerEngine {
     /// 測定中プロジェクトの色（sortOrder 順）。メニューバーアイコンの描画に使う。
     private(set) var runningColorHexes: [String] = []
 
+    /// 測定中プロジェクトの計測開始時刻（プロジェクト ID → 最古の開始時刻）。
+    /// 経過時間の表示に使う。
+    private(set) var runningStartDates: [UUID: Date] = [:]
+
     @ObservationIgnored private var context: ModelContext?
     @ObservationIgnored private var settings = AppSettings()
     @ObservationIgnored private var idleTimer: Timer?
@@ -35,6 +39,11 @@ final class TimerEngine {
 
     func isRunning(_ project: Project) -> Bool {
         runningProjectIDs.contains(project.id)
+    }
+
+    /// 計測中プロジェクトの計測開始時刻。計測していなければ nil。
+    func runningStartDate(for project: Project) -> Date? {
+        runningStartDates[project.id]
     }
 
     /// プロジェクトの計測を開始する。同時測定が無効なら他を停止してから開始する。
@@ -135,8 +144,17 @@ final class TimerEngine {
     }
 
     private func refreshRunningState() {
+        let openLogs = fetchOpenLogs()
+
+        var startDates: [UUID: Date] = [:]
+        for log in openLogs {
+            guard let id = log.project?.id else { continue }
+            startDates[id] = min(startDates[id] ?? log.startDate, log.startDate)
+        }
+        runningStartDates = startDates
+
         var seen = Set<UUID>()
-        let runningProjects = fetchOpenLogs()
+        let runningProjects = openLogs
             .compactMap { $0.project }
             .sorted { $0.sortOrder < $1.sortOrder }
             .filter { seen.insert($0.id).inserted }
