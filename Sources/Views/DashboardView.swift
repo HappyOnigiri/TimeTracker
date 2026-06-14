@@ -5,9 +5,12 @@ import SwiftUI
 /// 稼働時間レポートのダッシュボード。合計と日次推移をグラフ表示し、CSV 出力も行う。
 struct DashboardView: View {
     @Query private var logs: [TimeLog]
+    @Query(sort: \Project.sortOrder) private var projects: [Project]
 
     /// 表示対象の月（その月の 1 日 0:00）。
     @State private var selectedMonth: Date = DashboardView.currentMonthStart
+    /// 絞り込み対象のプロジェクト ID。nil のときはすべて表示。
+    @State private var selectedProjectID: UUID?
     @State private var exportMessage: String?
 
     var body: some View {
@@ -59,6 +62,7 @@ struct DashboardView: View {
             .disabled(isCurrentMonth)
 
             Spacer()
+            projectFilterMenu
             Button("CSV 出力", systemImage: "square.and.arrow.up") {
                 exportCSV()
             }
@@ -71,6 +75,31 @@ struct DashboardView: View {
                     .offset(y: 18)
             }
         }
+    }
+
+    /// プロジェクト絞り込み用のメニュー。「すべて」または 1 つを選択する。
+    private var projectFilterMenu: some View {
+        Menu {
+            Picker("プロジェクト", selection: $selectedProjectID) {
+                Text("すべてのプロジェクト").tag(UUID?.none)
+                ForEach(projects) { project in
+                    Text(project.name).tag(UUID?.some(project.id))
+                }
+            }
+            .pickerStyle(.inline)
+        } label: {
+            Label(projectFilterLabel, systemImage: "line.3.horizontal.decrease.circle")
+        }
+        .help("表示するプロジェクトを絞り込む")
+    }
+
+    /// フィルタメニューのラベル。選択状況に応じて表示を変える。
+    private var projectFilterLabel: String {
+        guard let id = selectedProjectID,
+              let project = projects.first(where: { $0.id == id }) else {
+            return "すべてのプロジェクト"
+        }
+        return project.name
     }
 
     // MARK: - 合計
@@ -178,19 +207,25 @@ struct DashboardView: View {
         selectedMonth...monthEnd
     }
 
+    /// プロジェクト絞り込みを適用したログ。未選択時は全件。
+    private var visibleLogs: [TimeLog] {
+        guard let id = selectedProjectID else { return logs }
+        return logs.filter { $0.project?.id == id }
+    }
+
     private var filteredLogs: [TimeLog] {
-        logs.filter { log in
+        visibleLogs.filter { log in
             let end = log.endDate ?? Date()
             return end >= range.lowerBound && log.startDate <= range.upperBound
         }
     }
 
     private var projectTotals: [ProjectTotal] {
-        ReportAggregator.projectTotals(logs: logs, in: range)
+        ReportAggregator.projectTotals(logs: visibleLogs, in: range)
     }
 
     private var dailyDurations: [DailyDuration] {
-        ReportAggregator.dailyDurations(logs: logs, in: range)
+        ReportAggregator.dailyDurations(logs: visibleLogs, in: range)
     }
 
     private var dailyNames: [String] {
