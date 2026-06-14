@@ -1,0 +1,13 @@
+# xcodegen で生成するため、プロジェクトファイルはコミットしない
+TimeTracker.xcodeproj/
+
+# Xcode / ビルド成果物
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+.DS_Store
+
+# SwiftPM
+.build/
+.swiftpm/

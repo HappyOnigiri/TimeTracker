@@ -1,0 +1,83 @@
+import Foundation
+import SwiftData
+import Testing
+@testable import TimeTracker
+
+// ModelContainer を生成するため直列実行（並列時の SwiftData 競合と共有 Defaults 競合を回避）。
+@MainActor
+@Suite(.serialized)
+struct TimerEngineTests {
+    @Test("開始でログが開き、停止で閉じる")
+    func startThenStop() throws {
+        let context = try TestSupport.makeContext()
+        let project = Project(name: "A")
+        context.insert(project)
+        let engine = TimerEngine()
+        engine.configure(context: context)
+
+        engine.start(project, now: TestSupport.date(2025, 1, 10, 9, 0))
+        #expect(engine.isRunning(project))
+        #expect(engine.isAnyRunning)
+
+        engine.stop(project, now: TestSupport.date(2025, 1, 10, 10, 0))
+        #expect(!engine.isRunning(project))
+        #expect(!engine.isAnyRunning)
+
+        let logs = try context.fetch(FetchDescriptor<TimeLog>())
+        #expect(logs.count == 1)
+        #expect(logs[0].endDate == TestSupport.date(2025, 1, 10, 10, 0))
+    }
+
+    @Test("stopAll は稼働中のすべてを停止する")
+    func stopAllStopsEverything() throws {
+        let context = try TestSupport.makeContext()
+        UserDefaults.standard.set(true, forKey: AppSettingsKey.allowConcurrentTracking)
+        let projectA = Project(name: "A")
+        let projectB = Project(name: "B")
+        context.insert(projectA)
+        context.insert(projectB)
+        let engine = TimerEngine()
+        engine.configure(context: context)
+
+        engine.start(projectA)
+        engine.start(projectB)
+        #expect(engine.runningProjectIDs.count == 2)
+
+        engine.stopAll()
+        #expect(!engine.isAnyRunning)
+    }
+
+    @Test("同時測定オフでは開始時に他を停止する")
+    func nonConcurrentStopsOthers() throws {
+        let context = try TestSupport.makeContext()
+        UserDefaults.standard.set(false, forKey: AppSettingsKey.allowConcurrentTracking)
+        defer { UserDefaults.standard.set(true, forKey: AppSettingsKey.allowConcurrentTracking) }
+        let projectA = Project(name: "A")
+        let projectB = Project(name: "B")
+        context.insert(projectA)
+        context.insert(projectB)
+        let engine = TimerEngine()
+        engine.configure(context: context)
+
+        engine.start(projectA)
+        engine.start(projectB)
+        #expect(engine.isRunning(projectB))
+        #expect(!engine.isRunning(projectA))
+        #expect(engine.runningProjectIDs.count == 1)
+    }
+
+    @Test("起動時に開きっぱなしのログを開始時刻で閉じる")
+    func closesOrphanedLogsOnConfigure() throws {
+        let context = try TestSupport.makeContext()
+        let project = Project(name: "A")
+        context.insert(project)
+        let orphan = TimeLog(project: project, startDate: TestSupport.date(2025, 1, 10, 9, 0), endDate: nil)
+        context.insert(orphan)
+        try context.save()
+
+        let engine = TimerEngine()
+        engine.configure(context: context)
+        #expect(!engine.isAnyRunning)
+        #expect(orphan.endDate == orphan.startDate)
+    }
+}

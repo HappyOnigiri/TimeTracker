@@ -1,0 +1,27 @@
+included:
+  - Sources
+  - Tests
+
+excluded:
+  - TimeTracker.xcodeproj
+
+opt_in_rules:
+  - empty_count
+  - closure_spacing
+  - explicit_init
+  - first_where
+  - sorted_first_last
+  - unneeded_parentheses_in_closure_argument
+
+line_length:
+  warning: 120
+  error: 160
+  ignores_comments: true
+
+identifier_name:
+  min_length: 2
+  excluded:
+    - id
+
+type_name:
+  max_length: 50

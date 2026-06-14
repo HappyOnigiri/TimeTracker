@@ -1,0 +1,66 @@
+name: TimeTracker
+options:
+  bundleIdPrefix: com.example
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    # ローカル/CI で Developer ID が無くても署名できるよう ad-hoc 署名を既定にする。
+    # ad-hoc 署名でも App Sandbox は実機で有効化・検証できる。
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: ""
+    SWIFT_STRICT_CONCURRENCY: complete
+targets:
+  TimeTracker:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources
+    info:
+      path: Sources/Info.plist
+      properties:
+        # メニューバー常駐アプリのため Dock アイコン非表示（アクセサリ）。
+        LSUIElement: true
+        CFBundleDisplayName: TimeTracker
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+    entitlements:
+      path: Sources/TimeTracker.entitlements
+      properties:
+        # App Sandbox は有効のまま。アイドル検知(CGEventSource)はサンドボックス内で
+        # アクセシビリティ権限なしに動作するため、サンドボックスを外さない。
+        com.apple.security.app-sandbox: true
+        # CSV 出力は NSSavePanel 経由のユーザー選択ファイルに限定。
+        com.apple.security.files.user-selected.read-write: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.TimeTracker
+        GENERATE_INFOPLIST_FILE: NO
+        ENABLE_HARDENED_RUNTIME: YES
+        COMBINE_HIDPI_IMAGES: YES
+  TimeTrackerTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: TimeTracker
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.TimeTrackerTests
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  TimeTracker:
+    build:
+      targets:
+        TimeTracker: all
+        TimeTrackerTests: [test]
+    test:
+      targets:
+        - TimeTrackerTests

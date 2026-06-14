@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -switch /Applications/Xcode_26.app || true
+
+      - name: Install tools
+        run: brew install xcodegen swiftlint
+
+      - name: Run CI (lint + build + test)
+        run: make ci
