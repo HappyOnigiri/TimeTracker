@@ -95,6 +95,7 @@ final class TimerEngine {
     /// アイドル時間が閾値を超え、かつ計測中なら全停止する。
     /// 停止時刻は「離席が始まった時刻（now - idle）」に補正し、離席分を計測に含めない。
     func checkIdle(now: Date = Date()) {
+        guard settings.idleDetectionEnabled else { return }
         guard isAnyRunning else { return }
         let idle = IdleDetector.secondsSinceLastInput()
         guard idle >= settings.idleThresholdSeconds else { return }
