@@ -36,11 +36,19 @@ enum CSVExporter {
         return rows.joined(separator: "\n") + "\n"
     }
 
-    /// カンマ・引用符・改行を含む場合はダブルクォートで囲み、内部の `"` を二重化する。
+    /// CSV フィールドを安全化する。
+    ///
+    /// 1. 先頭が `=`/`+`/`-`/`@`/タブ/復帰の場合、表計算ソフトが数式として解釈する
+    ///    （CSV インジェクション, CWE-1236）のを防ぐため先頭にシングルクォートを付す。
+    /// 2. カンマ・引用符・改行を含む場合はダブルクォートで囲み、内部の `"` を二重化する。
     private static func escape(_ field: String) -> String {
-        guard field.contains(where: { $0 == "," || $0 == "\"" || $0 == "\n" || $0 == "\r" }) else {
-            return field
+        var value = field
+        if let first = value.first, "=+-@\t\r".contains(first) {
+            value = "'" + value
         }
-        return "\"" + field.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+        guard value.contains(where: { $0 == "," || $0 == "\"" || $0 == "\n" || $0 == "\r" }) else {
+            return value
+        }
+        return "\"" + value.replacingOccurrences(of: "\"", with: "\"\"") + "\""
     }
 }
