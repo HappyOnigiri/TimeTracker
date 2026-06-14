@@ -61,4 +61,26 @@ struct CSVExporterTests {
         let csv = CSVExporter.makeCSV(logs: [log])
         #expect(csv.contains("\"A, B\""))
     }
+
+    @Test("数式トリガで始まる名前はシングルクォートで無害化される")
+    func neutralizesFormulaInjection() {
+        let project = Project(name: "=1+1")
+        let log = TimeLog(project: project,
+                          startDate: TestSupport.date(2025, 1, 10, 9, 0),
+                          endDate: TestSupport.date(2025, 1, 10, 9, 30))
+        let csv = CSVExporter.makeCSV(logs: [log])
+        let lines = csv.split(separator: "\n", omittingEmptySubsequences: true)
+        #expect(lines[1].hasPrefix("'=1+1,"))
+    }
+
+    @Test("数式トリガかつカンマを含む名前は無害化後にクォートされる")
+    func neutralizesAndQuotesFormulaWithComma() {
+        let project = Project(name: "@SUM(A1,A2)")
+        let log = TimeLog(project: project,
+                          startDate: TestSupport.date(2025, 1, 10, 9, 0),
+                          endDate: TestSupport.date(2025, 1, 10, 9, 30))
+        let csv = CSVExporter.makeCSV(logs: [log])
+        // 先頭にシングルクォートを付与し、カンマを含むため全体を CSV クォートで囲む。
+        #expect(csv.contains("\"'@SUM(A1,A2)\""))
+    }
 }

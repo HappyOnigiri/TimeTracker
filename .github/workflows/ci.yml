@@ -3,6 +3,11 @@ name: CI
 on:
   pull_request:
 
+# 同一 PR への連続 push では古い実行をキャンセルし、高価な macOS ランナーを節約する。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci:
     runs-on: macos-15

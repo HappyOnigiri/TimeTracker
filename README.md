@@ -45,8 +45,15 @@ make ci     # lint + build + test
 - **プロジェクト定義**: `project.yml`（xcodegen）。`.xcodeproj` は生成物のため Git 管理外。
 - **データ永続化**: SwiftData。
 - **グラフ**: Swift Charts。
-- **アイドル検知**: `CGEventSourceSecondsSinceLastEventType` を使用。HID のアイドル秒数を読むだけで、アクセシビリティ（入力監視）権限は不要。
-- **CSV 出力**: `NSSavePanel` でユーザーが選んだ場所にのみ書き込む。サンドボックスを外さない。
+- **App Sandbox は有効のまま運用する。**
+- **アイドル検知**: `CGEventSourceSecondsSinceLastEventType` を使用する。これは HID の
+  アイドル秒数を読むだけで、イベントタップと異なり**アクセシビリティ（入力監視）権限は不要**。
+  App Sandbox 内でも権限ダイアログなしに動作する。
+- **CSV 出力**: `NSSavePanel` でユーザーが選んだ場所にのみ書き込む
+  （`com.apple.security.files.user-selected.read-write`）。サンドボックスを外さない。
+  プロジェクト名は CSV インジェクション（数式実行）を防ぐため出力時に無害化する。
+
+> サンドボックス解除やアクセシビリティ権限の付与は不要。
 
 ## コントリビュート
 
