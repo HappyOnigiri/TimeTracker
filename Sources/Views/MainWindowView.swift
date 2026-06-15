@@ -10,6 +10,9 @@ struct MainWindowView: View {
             DashboardView()
                 .tabItem { Label(MainTab.dashboard.title, systemImage: MainTab.dashboard.systemImage) }
                 .tag(MainTab.dashboard)
+            RecordsView()
+                .tabItem { Label(MainTab.records.title, systemImage: MainTab.records.systemImage) }
+                .tag(MainTab.records)
             ProjectManagementView()
                 .tabItem { Label(MainTab.projects.title, systemImage: MainTab.projects.systemImage) }
                 .tag(MainTab.projects)

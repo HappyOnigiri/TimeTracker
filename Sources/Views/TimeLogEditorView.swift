@@ -1,0 +1,106 @@
+import SwiftUI
+
+/// 記録（TimeLog）の新規作成/編集シート。
+/// `ProjectEditorView` と同じ「`.sheet` 内の子ビュー＋ `onSave` クロージャ」構造。
+struct TimeLogEditorView: View {
+    let log: TimeLog?            // nil = 新規
+    let projects: [Project]     // Picker 用
+    let defaultDay: Date        // 新規時の初期日
+    let onSave: (Project, Date, Date) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedProjectID: UUID?
+    @State private var startDate: Date
+    @State private var endDate: Date
+
+    init(log: TimeLog?,
+         projects: [Project],
+         defaultDay: Date,
+         onSave: @escaping (Project, Date, Date) -> Void) {
+        self.log = log
+        self.projects = projects
+        self.defaultDay = defaultDay
+        self.onSave = onSave
+
+        if let log {
+            _selectedProjectID = State(initialValue: log.project?.id)
+            _startDate = State(initialValue: log.startDate)
+            _endDate = State(initialValue: log.endDate ?? log.startDate.addingTimeInterval(3600))
+        } else {
+            let calendar = Calendar.current
+            let start = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: defaultDay) ?? defaultDay
+            _selectedProjectID = State(initialValue: projects.first?.id)
+            _startDate = State(initialValue: start)
+            _endDate = State(initialValue: start.addingTimeInterval(3600))
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text(log == nil ? "記録を追加" : "記録を編集")
+                .font(.system(.title3, design: .rounded).bold())
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("プロジェクト")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Picker("プロジェクト", selection: $selectedProjectID) {
+                    ForEach(projects) { project in
+                        Text(project.name).tag(UUID?.some(project.id))
+                    }
+                }
+                .labelsHidden()
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("開始")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                DatePicker("開始", selection: $startDate,
+                           displayedComponents: [.date, .hourAndMinute])
+                    .labelsHidden()
+                    .onChange(of: startDate) { _, newValue in
+                        if endDate < newValue { endDate = newValue }
+                    }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("終了")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                DatePicker("終了", selection: $endDate, in: startDate...,
+                           displayedComponents: [.date, .hourAndMinute])
+                    .labelsHidden()
+            }
+
+            HStack {
+                Text("所要時間")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text(DurationFormatter.string(from: endDate.timeIntervalSince(startDate)))
+                    .font(.callout.monospacedDigit())
+                    .fontWeight(.medium)
+            }
+
+            Spacer().frame(height: 10)
+
+            HStack {
+                Button("キャンセル") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                Spacer()
+                Button("保存") {
+                    if let project = projects.first(where: { $0.id == selectedProjectID }) {
+                        onSave(project, startDate, endDate)
+                    }
+                    dismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+                .buttonStyle(.borderedProminent)
+                .disabled(selectedProjectID == nil)
+            }
+        }
+        .padding(24)
+        .frame(width: 380)
+    }
+}
