@@ -4,6 +4,7 @@ import SwiftUI
 /// メインウィンドウのタブ。
 enum MainTab: String, CaseIterable, Identifiable {
     case dashboard
+    case records
     case projects
     case settings
 
@@ -12,6 +13,7 @@ enum MainTab: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .dashboard: "ダッシュボード"
+        case .records: "記録"
         case .projects: "プロジェクト"
         case .settings: "設定"
         }
@@ -20,6 +22,7 @@ enum MainTab: String, CaseIterable, Identifiable {
     var systemImage: String {
         switch self {
         case .dashboard: "chart.bar"
+        case .records: "list.bullet.rectangle"
         case .projects: "folder"
         case .settings: "gearshape"
         }

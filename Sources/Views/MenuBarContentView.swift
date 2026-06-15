@@ -84,6 +84,9 @@ struct MenuBarContentView: View {
             menuButton("ダッシュボード…", systemImage: MainTab.dashboard.systemImage) {
                 open(.dashboard)
             }
+            menuButton("記録…", systemImage: MainTab.records.systemImage) {
+                open(.records)
+            }
             menuButton("プロジェクト管理…", systemImage: MainTab.projects.systemImage) {
                 open(.projects)
             }
