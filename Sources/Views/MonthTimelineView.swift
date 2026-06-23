@@ -64,10 +64,13 @@ struct MonthTimelineView: View {
 
     var body: some View {
         ScrollView([.horizontal, .vertical]) {
-            VStack(alignment: .leading, spacing: rowSpacing) {
-                header
-                ForEach(dayRows, id: \.day) { row in
-                    dayRow(row)
+            LazyVStack(alignment: .leading, spacing: rowSpacing, pinnedViews: [.sectionHeaders]) {
+                Section {
+                    ForEach(dayRows, id: \.day) { row in
+                        dayRow(row)
+                    }
+                } header: {
+                    header
                 }
             }
             .padding(contentPadding)
@@ -87,6 +90,7 @@ struct MonthTimelineView: View {
             }
         }
         .frame(width: dayGutter + trackWidth, height: 14, alignment: .topLeading)
+    .background(Color(nsColor: .windowBackgroundColor))
     }
 
     // MARK: - 1 日分の行
