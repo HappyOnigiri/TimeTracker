@@ -28,4 +28,10 @@ enum DurationFormatter {
     static func hours(from seconds: TimeInterval) -> Double {
         seconds / 3600
     }
+
+    /// "7.1h" 形式のコンパクトな時間表記。
+    static func compactHours(from seconds: TimeInterval) -> String {
+        let hours = seconds / 3600
+        return String(format: "%.1fh", hours)
+    }
 }
