@@ -34,13 +34,14 @@ struct AppSettings {
         defaults.bool(forKey: AppSettingsKey.idleDetectionEnabled)
     }
 
-    /// アイドル判定までの分数（最低 1 分）。
+    /// アイドル判定までの分数。
     var idleThresholdMinutes: Int {
-        max(1, defaults.integer(forKey: AppSettingsKey.idleThresholdMinutes))
+        max(0, defaults.integer(forKey: AppSettingsKey.idleThresholdMinutes))
     }
 
+    /// 0 分はデバッグ用：タイマー開始後 5 秒間入力がなければ離席と判定する。
     var idleThresholdSeconds: TimeInterval {
-        TimeInterval(idleThresholdMinutes) * 60
+        idleThresholdMinutes == 0 ? 5 : TimeInterval(idleThresholdMinutes) * 60
     }
 
     var allowConcurrentTracking: Bool {

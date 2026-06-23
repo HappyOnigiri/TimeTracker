@@ -1,6 +1,8 @@
+import AppKit
 import Foundation
 import Observation
 import SwiftData
+import SwiftUI
 
 /// プロジェクトごとのタイマー開始/停止と、アイドル検知による自動停止を司る中核。
 ///
@@ -17,6 +19,11 @@ final class TimerEngine {
     /// 測定中プロジェクトの計測開始時刻（プロジェクト ID → 最古の開始時刻）。
     /// 経過時間の表示に使う。
     private(set) var runningStartDates: [UUID: Date] = [:]
+
+    /// アイドル自動停止で停止されたプロジェクト情報。通知表示に使う。
+    private(set) var idleStoppedProjectNames: [String] = []
+    @ObservationIgnored private var idleStoppedProjectIDs: Set<UUID> = []
+    @ObservationIgnored private var idleAlertPanel: NSPanel?
 
     @ObservationIgnored private var context: ModelContext?
     @ObservationIgnored private var settings = AppSettings()
@@ -116,11 +123,67 @@ final class TimerEngine {
     private func stopAllNotBefore(stopAt: Date, now: Date) {
         let openLogs = fetchOpenLogs()
         guard !openLogs.isEmpty else { return }
+
+        let stoppedIDs = Set(openLogs.compactMap { $0.project?.id })
+
         for log in openLogs {
             log.endDate = max(stopAt, log.startDate)
         }
         save()
         refreshRunningState()
+
+        idleStoppedProjectIDs = stoppedIDs
+        idleStoppedProjectNames = Array(
+            Set(openLogs.compactMap { $0.project?.name })
+        ).sorted()
+        showIdleStopAlert()
+    }
+
+    // MARK: - アイドル停止通知
+
+    /// アイドル自動停止後、計測を再開する。
+    func resumeAfterIdle() {
+        guard let context, !idleStoppedProjectIDs.isEmpty else { return }
+        let ids = idleStoppedProjectIDs
+        let descriptor = FetchDescriptor<Project>()
+        let projects = (try? context.fetch(descriptor)) ?? []
+        for project in projects where ids.contains(project.id) {
+            start(project)
+        }
+        dismissIdleNotification()
+    }
+
+    /// アイドル停止通知を閉じる。
+    func dismissIdleNotification() {
+        idleStoppedProjectIDs = []
+        idleStoppedProjectNames = []
+        idleAlertPanel?.close()
+        idleAlertPanel = nil
+    }
+
+    private func showIdleStopAlert() {
+        if let existing = idleAlertPanel {
+            existing.close()
+            idleAlertPanel = nil
+        }
+
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 360, height: 200),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        panel.title = "タイマー自動停止"
+        panel.level = .floating
+        panel.isReleasedWhenClosed = false
+        panel.center()
+
+        let alertView = IdleStopAlertView(engine: self)
+        panel.contentView = NSHostingView(rootView: alertView)
+
+        idleAlertPanel = panel
+        panel.makeKeyAndOrderFront(nil)
+        NSApp.activate()
     }
 
     // MARK: - 内部処理

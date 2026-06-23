@@ -3,7 +3,7 @@ import SwiftUI
 /// 設定画面。AppStorage で永続化する。
 struct SettingsView: View {
     /// アイドル時間の設定範囲（分）。
-    private static let thresholdRange = 1...120
+    private static let thresholdRange = 0...120
 
     @AppStorage(AppSettingsKey.idleDetectionEnabled)
     private var idleDetectionEnabled = AppSettingsDefault.idleDetectionEnabled
