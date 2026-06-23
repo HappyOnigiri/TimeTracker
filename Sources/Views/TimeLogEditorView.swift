@@ -7,6 +7,7 @@ struct TimeLogEditorView: View {
     let projects: [Project]     // Picker 用
     let defaultDay: Date        // 新規時の初期日
     let onSave: (Project, Date, Date) -> Void
+    let onDelete: ((TimeLog) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @State private var selectedProjectID: UUID?
@@ -16,11 +17,13 @@ struct TimeLogEditorView: View {
     init(log: TimeLog?,
          projects: [Project],
          defaultDay: Date,
-         onSave: @escaping (Project, Date, Date) -> Void) {
+         onSave: @escaping (Project, Date, Date) -> Void,
+         onDelete: ((TimeLog) -> Void)? = nil) {
         self.log = log
         self.projects = projects
         self.defaultDay = defaultDay
         self.onSave = onSave
+        self.onDelete = onDelete
 
         if let log {
             _selectedProjectID = State(initialValue: log.project?.id)
@@ -88,6 +91,12 @@ struct TimeLogEditorView: View {
             HStack {
                 Button("キャンセル") { dismiss() }
                     .keyboardShortcut(.cancelAction)
+                if let log, let onDelete {
+                    Button("削除", role: .destructive) {
+                        dismiss()
+                        onDelete(log)
+                    }
+                }
                 Spacer()
                 Button("保存") {
                     if let project = projects.first(where: { $0.id == selectedProjectID }) {
