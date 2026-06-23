@@ -153,7 +153,7 @@ struct DashboardView: View {
             .chartForegroundStyleScale(range: colorRange(for: dailyNames))
             .chartXScale(domain: selectedMonth...monthEnd)
             .chartXAxis {
-                AxisMarks(values: .stride(by: .day, count: 5)) { _ in
+                AxisMarks(values: .stride(by: .day, count: 1)) { _ in
                     AxisGridLine()
                     AxisTick()
                     AxisValueLabel(format: .dateTime.day())
