@@ -38,10 +38,14 @@ struct RecordsView: View {
             TimeLogEditorView(
                 log: target.log,
                 projects: projects,
-                defaultDay: target.day
-            ) { project, start, end in
-                save(target: target, project: project, start: start, end: end)
-            }
+                defaultDay: target.day,
+                onSave: { project, start, end in
+                    save(target: target, project: project, start: start, end: end)
+                },
+                onDelete: target.log.map { log in
+                    { _ in delete(log) }
+                }
+            )
         }
     }
 
@@ -163,8 +167,10 @@ struct RecordsView: View {
 
     /// タイムラインは稼働がない日も含め当月の全日を表示するため、常に描画する。
     private var timelineContent: some View {
-        MonthTimelineView(month: selectedMonth, logs: monthLogs) { log in
+        MonthTimelineView(month: selectedMonth, logs: monthLogs, projects: projects) { log in
             editorTarget = .edit(log)
+        } onAddLog: { project, start, end in
+            TimeLogEditing.add(project: project, start: start, end: end, in: context)
         }
     }
 

@@ -14,7 +14,9 @@ struct MonthTimelineView: View {
     /// 表示対象の月（その月の 1 日 0:00）。当月の全日を行として描画するために使う。
     let month: Date
     let logs: [TimeLog]
+    let projects: [Project]
     let onSelect: (TimeLog) -> Void
+    let onAddLog: (Project, Date, Date) -> Void
 
     @Environment(\.modelContext) private var context
 
@@ -106,6 +108,7 @@ struct MonthTimelineView: View {
 
             ZStack(alignment: .topLeading) {
                 gridlines(height: rowHeight)
+                hourSegments(row: row, rowHeight: rowHeight)
                 ForEach(row.items, id: \.log.id) { item in
                     block(for: item, day: row.day)
                 }
@@ -153,7 +156,13 @@ struct MonthTimelineView: View {
         if log.isRunning {
             content
         } else {
-            content.gesture(blockGesture(for: log, offsetX: offsetX, width: width))
+            content
+                .contextMenu {
+                    Button("削除", role: .destructive) {
+                        TimeLogEditing.delete(log, in: context)
+                    }
+                }
+                .gesture(blockGesture(for: log, offsetX: offsetX, width: width))
         }
     }
 
@@ -305,7 +314,7 @@ struct MonthTimelineView: View {
     }
 
     /// 時刻 → ヘッダ起点からの X 座標。
-    private func xForHour(_ hour: Int) -> CGFloat {
+    func xForHour(_ hour: Int) -> CGFloat {
         CGFloat(hour - rangeStartHour) * pointsPerHour
     }
 }

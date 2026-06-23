@@ -68,6 +68,33 @@ extension MonthTimelineView {
         }
         return DayRow(day: day, items: items, laneCount: max(1, laneEnds.count))
     }
+
+    // MARK: - 空欄の右クリックメニュー（1 時間ごとのセグメント）
+
+    @ViewBuilder
+    func hourSegments(row: DayRow, rowHeight: CGFloat) -> some View {
+        ForEach(rangeStartHour..<rangeEndHour, id: \.self) { hour in
+            Color.clear
+                .frame(width: pointsPerHour, height: rowHeight)
+                .contentShape(Rectangle())
+                .contextMenu {
+                    Section("追加") {
+                        ForEach(projects) { project in
+                            Button {
+                                let cal = Calendar.current
+                                let start = cal.date(bySettingHour: hour, minute: 0, second: 0, of: row.day)!
+                                let end = start.addingTimeInterval(3600)
+                                onAddLog(project, start, end)
+                            } label: {
+                                Label(project.name, systemImage: "circle.fill")
+                                    .foregroundStyle(project.color)
+                            }
+                        }
+                    }
+                }
+                .offset(x: xForHour(hour))
+        }
+    }
 }
 
 // MARK: - カーソル
