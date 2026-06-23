@@ -62,6 +62,7 @@ struct MenuBarContentView: View {
     }
 
     private func open(_ tab: MainTab) {
+        NSApp.keyWindow?.close()
         navigation.selectedTab = tab
         openWindow(id: WindowID.main)
         NSApp.activate(ignoringOtherApps: true)
