@@ -114,7 +114,7 @@ struct DashboardView: View {
                 )
                 .foregroundStyle(by: .value("プロジェクト", total.name))
                 .annotation(position: .trailing) {
-                    Text(DurationFormatter.string(from: total.seconds))
+                    Text(DurationFormatter.compactHours(from: total.seconds))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -137,6 +137,18 @@ struct DashboardView: View {
                     y: .value("時間", DurationFormatter.hours(from: item.seconds))
                 )
                 .foregroundStyle(by: .value("プロジェクト", item.name))
+                ForEach(dailyTotals.filter { $0.seconds > 0 }, id: \.day) { total in
+                    PointMark(
+                        x: .value("日付", total.day, unit: .day),
+                        y: .value("時間", DurationFormatter.hours(from: total.seconds))
+                    )
+                    .opacity(0)
+                    .annotation(position: .top) {
+                        Text(DurationFormatter.compactHours(from: total.seconds))
+                            .font(.system(size: 9))
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
             .chartForegroundStyleScale(range: colorRange(for: dailyNames))
             .chartXScale(domain: selectedMonth...monthEnd)
@@ -226,6 +238,12 @@ struct DashboardView: View {
 
     private var dailyDurations: [DailyDuration] {
         ReportAggregator.dailyDurations(logs: visibleLogs, in: range)
+    }
+
+    private var dailyTotals: [(day: Date, seconds: TimeInterval)] {
+        Dictionary(grouping: dailyDurations, by: \.day)
+            .map { (day: $0.key, seconds: $0.value.reduce(0) { $0 + $1.seconds }) }
+            .sorted { $0.day < $1.day }
     }
 
     private var dailyNames: [String] {
