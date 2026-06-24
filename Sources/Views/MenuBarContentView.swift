@@ -123,16 +123,18 @@ private struct MenuButton: View {
     }
 
     var body: some View {
-        Button(title, systemImage: systemImage, action: action)
-            .buttonStyle(.plain)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, 3)
-            .padding(.horizontal, 6)
-            .contentShape(Rectangle())
-            .background(
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.primary.opacity(isHovered ? 0.08 : 0))
-            )
-            .onHover { isHovered = $0 }
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .buttonStyle(.plain)
+        .padding(.vertical, 3)
+        .padding(.horizontal, 6)
+        .contentShape(Rectangle())
+        .background(
+            RoundedRectangle(cornerRadius: 4)
+                .fill(Color.primary.opacity(isHovered ? 0.08 : 0))
+        )
+        .onHover { isHovered = $0 }
     }
 }
