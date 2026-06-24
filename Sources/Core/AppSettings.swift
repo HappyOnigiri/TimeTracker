@@ -7,12 +7,14 @@ import Foundation
 enum AppSettingsKey {
     static let idleDetectionEnabled = "idleDetectionEnabled"
     static let idleThresholdMinutes = "idleThresholdMinutes"
+    static let idleAlertEnabled = "idleAlertEnabled"
     static let allowConcurrentTracking = "allowConcurrentTracking"
 }
 
 enum AppSettingsDefault {
     static let idleDetectionEnabled = true
     static let idleThresholdMinutes = 5
+    static let idleAlertEnabled = true
     static let allowConcurrentTracking = true
 }
 
@@ -25,6 +27,7 @@ struct AppSettings {
         defaults.register(defaults: [
             AppSettingsKey.idleDetectionEnabled: AppSettingsDefault.idleDetectionEnabled,
             AppSettingsKey.idleThresholdMinutes: AppSettingsDefault.idleThresholdMinutes,
+            AppSettingsKey.idleAlertEnabled: AppSettingsDefault.idleAlertEnabled,
             AppSettingsKey.allowConcurrentTracking: AppSettingsDefault.allowConcurrentTracking
         ])
     }
@@ -42,6 +45,10 @@ struct AppSettings {
     /// 0 分はデバッグ用：タイマー開始後 5 秒間入力がなければ離席と判定する。
     var idleThresholdSeconds: TimeInterval {
         idleThresholdMinutes == 0 ? 5 : TimeInterval(idleThresholdMinutes) * 60
+    }
+
+    var idleAlertEnabled: Bool {
+        defaults.bool(forKey: AppSettingsKey.idleAlertEnabled)
     }
 
     var allowConcurrentTracking: Bool {

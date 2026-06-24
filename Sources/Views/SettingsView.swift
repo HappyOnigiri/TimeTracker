@@ -9,6 +9,8 @@ struct SettingsView: View {
     private var idleDetectionEnabled = AppSettingsDefault.idleDetectionEnabled
     @AppStorage(AppSettingsKey.idleThresholdMinutes)
     private var idleThresholdMinutes = AppSettingsDefault.idleThresholdMinutes
+    @AppStorage(AppSettingsKey.idleAlertEnabled)
+    private var idleAlertEnabled = AppSettingsDefault.idleAlertEnabled
     @AppStorage(AppSettingsKey.allowConcurrentTracking)
     private var allowConcurrentTracking = AppSettingsDefault.allowConcurrentTracking
 
@@ -61,6 +63,8 @@ struct SettingsView: View {
                 Text("入力がこの時間ない場合、稼働中のすべてのタイマーを自動停止します。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Toggle("自動停止時にモーダルを表示する", isOn: $idleAlertEnabled)
+                    .disabled(!idleDetectionEnabled)
             }
             Section("計測") {
                 Toggle("複数プロジェクトの同時測定を許可する", isOn: $allowConcurrentTracking)
