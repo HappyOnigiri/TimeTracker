@@ -102,10 +102,24 @@ final class TimerEngine {
         idleTimer?.invalidate()
         let timer = Timer.scheduledTimer(withTimeInterval: idlePollInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                self?.checkIdle()
+                self?.idleTimerFired()
             }
         }
         idleTimer = timer
+    }
+
+    private func idleTimerFired() {
+        refrontIdleAlertIfNeeded()
+        checkIdle()
+    }
+
+    private func refrontIdleAlertIfNeeded() {
+        guard let panel = idleAlertPanel else { return }
+        let idleSeconds = IdleDetector.secondsSinceLastInput()
+        guard idleSeconds < settings.idleThresholdSeconds else { return }
+        centerPanelOnCursorScreen(panel)
+        panel.makeKeyAndOrderFront(nil)
+        NSApp.activate()
     }
 
     /// アイドル時間が閾値を超え、かつ計測中なら全停止する。
@@ -136,7 +150,9 @@ final class TimerEngine {
         idleStoppedProjectNames = Array(
             Set(openLogs.compactMap { $0.project?.name })
         ).sorted()
-        showIdleStopAlert()
+        if settings.idleAlertEnabled {
+            showIdleStopAlert()
+        }
     }
 
     // MARK: - アイドル停止通知
@@ -168,15 +184,17 @@ final class TimerEngine {
         }
 
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 360, height: 200),
-            styleMask: [.titled, .closable],
+            contentRect: NSRect(x: 0, y: 0, width: 480, height: 280),
+            styleMask: [.titled],
             backing: .buffered,
             defer: false
         )
         panel.title = "タイマー自動停止"
-        panel.level = .floating
+        panel.level = .screenSaver
         panel.isReleasedWhenClosed = false
-        panel.center()
+        panel.hidesOnDeactivate = false
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        centerPanelOnCursorScreen(panel)
 
         let alertView = IdleStopAlertView(engine: self)
         panel.contentView = NSHostingView(rootView: alertView)
@@ -184,6 +202,17 @@ final class TimerEngine {
         idleAlertPanel = panel
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate()
+    }
+
+    private func centerPanelOnCursorScreen(_ panel: NSPanel) {
+        let screen = NSScreen.screens.first { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) }
+            ?? NSScreen.main
+        guard let screen else { return }
+        let screenFrame = screen.visibleFrame
+        let panelSize = panel.frame.size
+        let originX = screenFrame.midX - panelSize.width / 2
+        let originY = screenFrame.midY - panelSize.height / 2
+        panel.setFrameOrigin(NSPoint(x: originX, y: originY))
     }
 
     // MARK: - 内部処理

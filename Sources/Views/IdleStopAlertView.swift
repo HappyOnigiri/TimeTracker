@@ -5,39 +5,42 @@ struct IdleStopAlertView: View {
     let engine: TimerEngine
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             Image(systemName: "moon.zzz.fill")
-                .font(.system(size: 40))
+                .font(.system(size: 56))
                 .foregroundStyle(.secondary)
 
             Text("タイマーを自動停止しました")
-                .font(.headline)
+                .font(.title2.bold())
 
             if !engine.idleStoppedProjectNames.isEmpty {
                 Text(engine.idleStoppedProjectNames.joined(separator: "、"))
-                    .font(.subheadline)
+                    .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
 
             Text("一定時間入力がなかったため、計測を自動的に停止しました。")
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
-            HStack(spacing: 12) {
+            HStack(spacing: 16) {
                 Button("閉じる") {
                     engine.dismissIdleNotification()
                 }
                 .keyboardShortcut(.cancelAction)
+                .controlSize(.large)
 
                 Button("計測を再開") {
                     engine.resumeAfterIdle()
                 }
                 .keyboardShortcut(.defaultAction)
+                .controlSize(.large)
             }
+            .padding(.top, 4)
         }
-        .padding(24)
-        .frame(width: 320)
+        .padding(32)
+        .frame(width: 440)
     }
 }
