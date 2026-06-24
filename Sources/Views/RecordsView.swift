@@ -6,6 +6,7 @@ struct RecordsView: View {
     @Environment(\.modelContext) var context
     @Query(sort: \TimeLog.startDate) private var logs: [TimeLog]
     @Query(sort: \Project.sortOrder) private var projects: [Project]
+    @Query(sort: \ActiveSession.startDate) private var activeSessions: [ActiveSession]
 
     /// 表示対象の月（その月の 1 日 0:00）。リスト・タイムライン共通。
     @State private var selectedMonth: Date = RecordsView.currentMonthStart
@@ -166,8 +167,20 @@ struct RecordsView: View {
     }
 
     /// タイムラインは稼働がない日も含め当月の全日を表示するため、常に描画する。
+    /// 選択中の月に該当するアクティブセッション。
+    private var monthActiveSessions: [ActiveSession] {
+        let range = selectedMonth..<monthEnd
+        return activeSessions.filter { session in
+            let end = session.endDate ?? Date()
+            return session.startDate < range.upperBound && end > range.lowerBound
+        }
+    }
+
     private var timelineContent: some View {
-        MonthTimelineView(month: selectedMonth, logs: monthLogs, projects: projects) { log in
+        MonthTimelineView(
+            month: selectedMonth, logs: monthLogs, projects: projects,
+            activeSessions: monthActiveSessions
+        ) { log in
             editorTarget = .edit(log)
         } onAddLog: { project, start, end in
             TimeLogEditing.add(project: project, start: start, end: end, in: context)

@@ -9,12 +9,13 @@ enum WindowID {
 @main
 struct TimeTrackerApp: App {
     @State private var engine = TimerEngine()
+    @State private var activeTimeTracker = ActiveTimeTracker()
     @State private var navigation = AppNavigation()
     private let container: ModelContainer
 
     init() {
         do {
-            container = try ModelContainer(for: Project.self, TimeLog.self)
+            container = try ModelContainer(for: Project.self, TimeLog.self, ActiveSession.self)
         } catch {
             fatalError("ModelContainer の生成に失敗しました: \(error)")
         }
@@ -29,7 +30,10 @@ struct TimeTrackerApp: App {
         } label: {
             Image(nsImage: MenuBarIcon.image(forColorHexes: engine.runningColorHexes))
                 .accessibilityLabel(engine.isAnyRunning ? "測定中" : "全停止中")
-                .onAppear { engine.configure(context: container.mainContext) }
+                .onAppear {
+                    engine.configure(context: container.mainContext)
+                    activeTimeTracker.configure(context: container.mainContext)
+                }
         }
         .menuBarExtraStyle(.window)
 

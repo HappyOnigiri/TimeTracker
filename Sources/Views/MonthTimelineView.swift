@@ -15,10 +15,18 @@ struct MonthTimelineView: View {
     let month: Date
     let logs: [TimeLog]
     let projects: [Project]
+    let activeSessions: [ActiveSession]
     let onSelect: (TimeLog) -> Void
     let onAddLog: (Project, Date, Date) -> Void
 
     @Environment(\.modelContext) private var context
+    @Environment(\.colorScheme) private var colorScheme
+
+    var activeHighlightColor: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.12)
+            : Color.yellow.opacity(0.18)
+    }
 
     /// 1 時間あたりの幅（pt）。横ドラッグの分解能に直結する。
     let pointsPerHour: CGFloat = 48
@@ -122,6 +130,7 @@ struct MonthTimelineView: View {
                 .frame(width: dayGutter, height: laneHeight, alignment: .leading)
 
             ZStack(alignment: .topLeading) {
+                activeBackground(for: row.day, height: rowHeight)
                 gridlines(height: rowHeight)
                 hourSegments(row: row, rowHeight: rowHeight)
                 ForEach(row.items, id: \.log.id) { item in
@@ -268,19 +277,22 @@ struct MonthTimelineView: View {
     }
 
     /// 押下位置（ブロック内 X 座標）から操作モードを決める。
-    private func modeForStart(startX: CGFloat, width: CGFloat) -> DragMode {
+}
+
+// MARK: - ドラッグ操作
+
+extension MonthTimelineView {
+    fileprivate func modeForStart(startX: CGFloat, width: CGFloat) -> DragMode {
         guard width >= resizeEdgeMin else { return .move }
         if startX <= resizeEdgeWidth { return .resizeStart }
         if startX >= width - resizeEdgeWidth { return .resizeEnd }
         return .move
     }
 
-    /// ドラッグ中の開始・終了をローカル状態へ反映する（確定までモデルへ書かない）。
-    private func applyDrag(translationWidth: CGFloat, dayDelta: Int) {
+    fileprivate func applyDrag(translationWidth: CGFloat, dayDelta: Int) {
         let deltaSeconds = Double(translationWidth / pointsPerHour) * 3600
         switch dragMode {
         case .move:
-            // 縦は日数（DST を考慮し Calendar で加算）、横は時刻。所要時間は保つ。
             let cal = Calendar.current
             let shiftedStart = cal.date(byAdding: .day, value: dayDelta, to: dragOrigStart) ?? dragOrigStart
             let duration = dragOrigEnd.timeIntervalSince(dragOrigStart)
@@ -297,8 +309,7 @@ struct MonthTimelineView: View {
         }
     }
 
-    /// ドラッグ確定。スナップして開始 < 終了を保証し、モデルへ反映する。
-    private func commitDrag(for log: TimeLog) {
+    fileprivate func commitDrag(for log: TimeLog) {
         defer { dragLogID = nil }
         guard dragLogID == log.id else { return }
 
@@ -306,7 +317,6 @@ struct MonthTimelineView: View {
         var end = dragEnd
         switch dragMode {
         case .move:
-            // 移動は所要時間を保ったまま開始をスナップする。
             let duration = end.timeIntervalSince(start)
             start = snapped(start)
             end = start.addingTimeInterval(duration)
@@ -324,14 +334,12 @@ struct MonthTimelineView: View {
         TimeLogEditing.updateTimes(log, start: start, end: end, in: context)
     }
 
-    /// 指定時刻を snapMinutes 単位に丸める。
-    private func snapped(_ date: Date) -> Date {
+    fileprivate func snapped(_ date: Date) -> Date {
         let interval = TimeInterval(snapMinutes * 60)
         let rounded = (date.timeIntervalSinceReferenceDate / interval).rounded() * interval
         return Date(timeIntervalSinceReferenceDate: rounded)
     }
 
-    /// 時刻 → ヘッダ起点からの X 座標。
     func xForHour(_ hour: Int) -> CGFloat {
         CGFloat(hour - rangeStartHour) * pointsPerHour
     }
@@ -372,24 +380,4 @@ extension MonthTimelineView {
         CGFloat(rangeEndHour - rangeStartHour) * pointsPerHour
     }
 
-    func blockHelp(log: TimeLog, start: Date, end: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ja_JP")
-        formatter.dateFormat = "H:mm"
-        let name = log.project?.name ?? "（不明）"
-        if log.isRunning {
-            return "\(name)  \(formatter.string(from: start)) 〜 計測中"
-        }
-        let duration = DurationFormatter.string(from: end.timeIntervalSince(start))
-        return "\(name)  \(formatter.string(from: start)) 〜 \(formatter.string(from: end))  (\(duration))"
-    }
-
-    /// 「6月1日(月)」の日本式日付ラベル。
-    static func dayLabel(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "ja_JP")
-        formatter.dateFormat = "M月d日(E)"
-        return formatter.string(from: date)
-    }
 }
