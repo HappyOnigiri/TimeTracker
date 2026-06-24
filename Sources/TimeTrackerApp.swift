@@ -14,6 +14,12 @@ struct TimeTrackerApp: App {
     private let container: ModelContainer
 
     init() {
+        if ProcessInfo.processInfo.environment["XCTestBundlePath"] == nil,
+           let bundleID = Bundle.main.bundleIdentifier,
+           NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).count > 1 {
+            exit(0)
+        }
+
         do {
             container = try ModelContainer(for: Project.self, TimeLog.self, ActiveSession.self)
         } catch {
