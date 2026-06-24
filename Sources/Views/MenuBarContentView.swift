@@ -126,11 +126,11 @@ private struct MenuButton: View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 3)
+                .padding(.horizontal, 6)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .padding(.vertical, 3)
-        .padding(.horizontal, 6)
-        .contentShape(Rectangle())
         .background(
             RoundedRectangle(cornerRadius: 4)
                 .fill(Color.primary.opacity(isHovered ? 0.08 : 0))
