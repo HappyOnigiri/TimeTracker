@@ -95,6 +95,50 @@ extension MonthTimelineView {
                 .offset(x: xForHour(hour))
         }
     }
+    // MARK: - アクティブ時間背景
+
+    func activeBackground(for day: Date, height: CGFloat) -> some View {
+        let dayBegin = dayStart(of: day)
+        let dayEnd = dayBegin.addingTimeInterval(24 * 3600)
+        let sessions = activeSessions.filter { session in
+            let end = session.endDate ?? Date()
+            return session.startDate < dayEnd && end > dayBegin
+        }
+        return ForEach(sessions, id: \.id) { session in
+            let clippedStart = max(session.startDate, dayBegin)
+            let clippedEnd = min(session.endDate ?? Date(), dayEnd)
+            let posX = xPos(clippedStart, dayStart: dayBegin)
+            let width = CGFloat(clippedEnd.timeIntervalSince(clippedStart) / 3600) * pointsPerHour
+            RoundedRectangle(cornerRadius: 3)
+                .fill(activeHighlightColor)
+                .frame(width: max(0, width), height: height)
+                .offset(x: posX)
+                .allowsHitTesting(false)
+        }
+    }
+
+    // MARK: - ヘルパー
+
+    func blockHelp(log: TimeLog, start: Date, end: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ja_JP")
+        formatter.dateFormat = "H:mm"
+        let name = log.project?.name ?? "（不明）"
+        if log.isRunning {
+            return "\(name)  \(formatter.string(from: start)) 〜 計測中"
+        }
+        let duration = DurationFormatter.string(from: end.timeIntervalSince(start))
+        return "\(name)  \(formatter.string(from: start)) 〜 \(formatter.string(from: end))  (\(duration))"
+    }
+
+    static func dayLabel(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "ja_JP")
+        formatter.dateFormat = "M月d日(E)"
+        return formatter.string(from: date)
+    }
+
     // MARK: - 現在時刻マーカー
 
     func nowMarker(height: CGFloat) -> some View {
