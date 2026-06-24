@@ -41,6 +41,9 @@ struct MonthTimelineView: View {
     /// リサイズ時の最小計測時間。
     let minDuration: TimeInterval = 300
 
+    /// 現在時刻マーカーの更新用（60 秒ごと）。
+    @State var now = Date()
+
     // ドラッグ中のローカル状態（確定までモデルへ書き込まない）。
     @State private var dragLogID: UUID?
     @State private var dragMode: DragMode = .move
@@ -64,6 +67,8 @@ struct MonthTimelineView: View {
     /// コンテンツ外周の余白。座標空間は padding を含むため、ブロック内 X 算出時に差し引く。
     let contentPadding: CGFloat = 12
 
+    private let nowTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
+
     var body: some View {
         ScrollView([.horizontal, .vertical]) {
             LazyVStack(alignment: .leading, spacing: rowSpacing, pinnedViews: [.sectionHeaders]) {
@@ -78,21 +83,29 @@ struct MonthTimelineView: View {
             .padding(contentPadding)
             .coordinateSpace(name: MonthTimelineView.contentSpace)
         }
+        .onReceive(nowTimer) { now = $0 }
     }
 
     // MARK: - ヘッダ（時刻目盛り）
 
     private var header: some View {
-        ZStack(alignment: .topLeading) {
+        let isCurrentMonth = Calendar.current.isDate(month, equalTo: Date(), toGranularity: .month)
+        return ZStack(alignment: .topLeading) {
             ForEach(rangeStartHour...rangeEndHour, id: \.self) { hour in
                 Text(String(format: "%02d", hour))
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(.secondary)
                     .offset(x: dayGutter + xForHour(hour) - 6)
             }
+            if isCurrentMonth {
+                Rectangle()
+                    .fill(Color.red)
+                    .frame(width: 1.5, height: 14)
+                    .offset(x: dayGutter + xPos(now, dayStart: dayStart(of: now)) - 0.25)
+            }
         }
         .frame(width: dayGutter + trackWidth, height: 14, alignment: .topLeading)
-    .background(Color(nsColor: .windowBackgroundColor))
+        .background(Color(nsColor: .windowBackgroundColor))
     }
 
     // MARK: - 1 日分の行
@@ -101,9 +114,11 @@ struct MonthTimelineView: View {
         let rowHeight = CGFloat(row.laneCount) * laneHeight
         // ドラッグ中のブロックを含む行は、はみ出しても他行の上に描くため最前面へ。
         let isDraggingRow = row.items.contains { $0.log.id == dragLogID }
+        let isToday = Calendar.current.isDateInToday(row.day)
         return HStack(alignment: .top, spacing: 0) {
             Text(MonthTimelineView.dayLabel(for: row.day))
                 .font(.callout)
+                .fontWeight(isToday ? .bold : .regular)
                 .frame(width: dayGutter, height: laneHeight, alignment: .leading)
 
             ZStack(alignment: .topLeading) {
@@ -111,6 +126,9 @@ struct MonthTimelineView: View {
                 hourSegments(row: row, rowHeight: rowHeight)
                 ForEach(row.items, id: \.log.id) { item in
                     block(for: item, day: row.day)
+                }
+                if isToday {
+                    nowMarker(height: rowHeight)
                 }
             }
             .frame(width: trackWidth, height: rowHeight, alignment: .topLeading)

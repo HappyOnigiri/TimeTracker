@@ -95,6 +95,16 @@ extension MonthTimelineView {
                 .offset(x: xForHour(hour))
         }
     }
+    // MARK: - 現在時刻マーカー
+
+    func nowMarker(height: CGFloat) -> some View {
+        let markerX = xPos(now, dayStart: dayStart(of: now))
+        return Rectangle()
+            .fill(Color.red)
+            .frame(width: 1.5, height: height)
+            .offset(x: markerX - 0.25)
+            .allowsHitTesting(false)
+    }
 }
 
 // MARK: - カーソル
