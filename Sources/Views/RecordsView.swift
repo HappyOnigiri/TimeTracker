@@ -10,7 +10,7 @@ struct RecordsView: View {
 
     /// 表示対象の月（その月の 1 日 0:00）。リスト・タイムライン共通。
     @State private var selectedMonth: Date = RecordsView.currentMonthStart
-    @State private var viewMode: ViewMode = .list
+    @State private var viewMode: ViewMode = .timeline
     /// プロジェクト絞り込み（nil＝すべて）。リスト・タイムライン共通。
     @State private var selectedProjectID: UUID?
     @State var editorTarget: EditorTarget?
