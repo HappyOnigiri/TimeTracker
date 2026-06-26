@@ -9,6 +9,7 @@ enum AppSettingsKey {
     static let idleThresholdMinutes = "idleThresholdMinutes"
     static let idleAlertEnabled = "idleAlertEnabled"
     static let allowConcurrentTracking = "allowConcurrentTracking"
+    static let timelineSnapMinutes = "timelineSnapMinutes"
 }
 
 enum AppSettingsDefault {
@@ -16,6 +17,7 @@ enum AppSettingsDefault {
     static let idleThresholdMinutes = 5
     static let idleAlertEnabled = true
     static let allowConcurrentTracking = true
+    static let timelineSnapMinutes = 5
 }
 
 /// 非 View 層から設定値を読むためのアクセサ。
@@ -28,7 +30,8 @@ struct AppSettings {
             AppSettingsKey.idleDetectionEnabled: AppSettingsDefault.idleDetectionEnabled,
             AppSettingsKey.idleThresholdMinutes: AppSettingsDefault.idleThresholdMinutes,
             AppSettingsKey.idleAlertEnabled: AppSettingsDefault.idleAlertEnabled,
-            AppSettingsKey.allowConcurrentTracking: AppSettingsDefault.allowConcurrentTracking
+            AppSettingsKey.allowConcurrentTracking: AppSettingsDefault.allowConcurrentTracking,
+            AppSettingsKey.timelineSnapMinutes: AppSettingsDefault.timelineSnapMinutes
         ])
     }
 
@@ -53,5 +56,10 @@ struct AppSettings {
 
     var allowConcurrentTracking: Bool {
         defaults.bool(forKey: AppSettingsKey.allowConcurrentTracking)
+    }
+
+    var timelineSnapMinutes: Int {
+        let value = defaults.integer(forKey: AppSettingsKey.timelineSnapMinutes)
+        return [5, 10, 15, 30].contains(value) ? value : AppSettingsDefault.timelineSnapMinutes
     }
 }

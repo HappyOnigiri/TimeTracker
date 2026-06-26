@@ -13,6 +13,8 @@ struct SettingsView: View {
     private var idleAlertEnabled = AppSettingsDefault.idleAlertEnabled
     @AppStorage(AppSettingsKey.allowConcurrentTracking)
     private var allowConcurrentTracking = AppSettingsDefault.allowConcurrentTracking
+    @AppStorage(AppSettingsKey.timelineSnapMinutes)
+    private var timelineSnapMinutes = AppSettingsDefault.timelineSnapMinutes
 
     /// ログイン項目（自動起動）の登録状態。システム側の状態を反映する。
     @State private var launchAtLogin = LoginItemService.isEnabled
@@ -69,6 +71,17 @@ struct SettingsView: View {
             Section("計測") {
                 Toggle("複数プロジェクトの同時測定を許可する", isOn: $allowConcurrentTracking)
                 Text("オフにすると、あるプロジェクトを開始したとき他の計測は自動停止します。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Section("タイムライン") {
+                Picker("ドラッグ操作のスナップ単位", selection: $timelineSnapMinutes) {
+                    Text("5 分").tag(5)
+                    Text("10 分").tag(10)
+                    Text("15 分").tag(15)
+                    Text("30 分").tag(30)
+                }
+                Text("タイムラインでブロックを移動・リサイズしたときの時刻の丸め幅です。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

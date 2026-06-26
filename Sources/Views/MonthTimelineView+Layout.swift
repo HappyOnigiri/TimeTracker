@@ -2,6 +2,36 @@ import AppKit
 import SwiftData
 import SwiftUI
 
+// MARK: - 座標変換・表示範囲
+
+extension MonthTimelineView {
+    func effectiveEnd(of log: TimeLog) -> Date {
+        if let end = log.endDate { return end }
+        let dayEnd = dayStart(of: log.startDate).addingTimeInterval(24 * 3600)
+        return min(Date(), dayEnd)
+    }
+
+    func dayStart(of date: Date) -> Date {
+        Calendar.current.startOfDay(for: date)
+    }
+
+    func hourOffset(of date: Date, dayStart: Date) -> Double {
+        let hours = date.timeIntervalSince(dayStart) / 3600
+        return min(24, max(0, hours))
+    }
+
+    func xPos(_ date: Date, dayStart: Date) -> CGFloat {
+        CGFloat(hourOffset(of: date, dayStart: dayStart) - Double(rangeStartHour)) * pointsPerHour
+    }
+
+    var rangeStartHour: Int { 0 }
+    var rangeEndHour: Int { 24 }
+
+    var trackWidth: CGFloat {
+        CGFloat(rangeEndHour - rangeStartHour) * pointsPerHour
+    }
+}
+
 // MARK: - 重なりレイアウト（日ごと・貪欲レーン割り当て）
 
 extension MonthTimelineView {
@@ -148,6 +178,43 @@ extension MonthTimelineView {
             .frame(width: 1.5, height: height)
             .offset(x: markerX - 0.25)
             .allowsHitTesting(false)
+    }
+}
+
+// MARK: - スナッププレビュー
+
+extension MonthTimelineView {
+    static let snapTimeFmt: DateFormatter = {
+        let fmt = DateFormatter()
+        fmt.locale = Locale(identifier: "ja_JP")
+        fmt.dateFormat = "H:mm"
+        return fmt
+    }()
+
+    @ViewBuilder
+    func snapPreview(
+        snapX: CGFloat, snapWidth: CGFloat,
+        snappedStart: Date, snappedEnd: Date
+    ) -> some View {
+        let blockH = laneHeight - laneGap
+
+        Group {
+            RoundedRectangle(cornerRadius: 5)
+                .stroke(Color.accentColor.opacity(0.7), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                .frame(width: snapWidth, height: blockH)
+                .offset(x: snapX)
+
+            let label = "\(Self.snapTimeFmt.string(from: snappedStart))–\(Self.snapTimeFmt.string(from: snappedEnd))"
+            Text(label)
+                .font(.caption2.monospacedDigit().bold())
+                .foregroundStyle(Color.accentColor)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 1)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 3))
+                .fixedSize()
+                .offset(x: snapX, y: -blockH + 2)
+        }
+        .allowsHitTesting(false)
     }
 }
 
