@@ -45,9 +45,10 @@ struct MonthTimelineView: View {
     /// タップ（編集）とみなす最大移動量（pt）。
     let tapSlop: CGFloat = 4
     /// 確定時のスナップ単位（分）。
-    let snapMinutes: Int = 5
+    @AppStorage(AppSettingsKey.timelineSnapMinutes)
+    var snapMinutes: Int = AppSettingsDefault.timelineSnapMinutes
     /// リサイズ時の最小計測時間。
-    let minDuration: TimeInterval = 300
+    var minDuration: TimeInterval { TimeInterval(snapMinutes * 60) }
 
     /// 現在時刻マーカーの更新用（60 秒ごと）。
     @State var now = Date()
@@ -61,6 +62,8 @@ struct MonthTimelineView: View {
     @State private var dragEnd: Date = .distantPast
     /// 移動ドラッグ中の縦方向の日数ずれ（ライブプレビューの行オフセットに使う）。
     @State private var dragDayDelta: Int = 0
+    /// ドラッグ中に tapSlop を超えたか（元の位置に戻してもタップ扱いしない）。
+    @State private var dragDidMove: Bool = false
 
     enum DragMode {
         case move, resizeStart, resizeEnd
@@ -177,13 +180,25 @@ struct MonthTimelineView: View {
             .contentShape(Rectangle())
             .offset(x: offsetX, y: offsetY)
 
-        // 計測中は読み取り専用（タップ・移動・リサイズすべて無効）。
-        // それ以外は 1 ブロック 1 ジェスチャーに統合し、macOS のジェスチャー調停の
-        // デッドロックを避ける（押下位置で移動／リサイズを判定、移動量ゼロはタップ）。
+        // 計測中は読み取り専用。それ以外は常に同じビュー階層を維持する
+        // （ドラッグ中に分岐するとSwiftUIがジェスチャーをキャンセルする）。
         if log.isRunning {
             content
         } else {
             content
+                .overlay(alignment: .topLeading) {
+                    if isDragging {
+                        let snapped = snappedDragTimes()
+                        let snapAnchor = dayStart(of: snapped.start)
+                        let snapX = xPos(snapped.start, dayStart: snapAnchor)
+                        let snapEndX = xPos(snapped.end, dayStart: snapAnchor)
+                        let snapWidth = max(minBlockWidth, snapEndX - snapX)
+                        snapPreview(
+                            snapX: snapX, snapWidth: snapWidth,
+                            snappedStart: snapped.start, snappedEnd: snapped.end
+                        )
+                    }
+                }
                 .contextMenu {
                     Button("削除", role: .destructive) {
                         TimeLogEditing.delete(log, in: context)
@@ -234,16 +249,19 @@ struct MonthTimelineView: View {
                     dragStart = dragOrigStart
                     dragEnd = dragOrigEnd
                     dragDayDelta = 0
+                    dragDidMove = false
                 }
-                // 移動時のみ、押下行から現在行への差で日数をずらす（縦ドラッグ＝日付跨ぎ）。
+                let moved = abs(value.translation.width) + abs(value.translation.height)
+                if !dragDidMove && moved >= tapSlop {
+                    dragDidMove = true
+                }
                 dragDayDelta = dragMode == .move
                     ? rowIndex(atY: value.location.y) - rowIndex(atY: value.startLocation.y)
                     : 0
                 applyDrag(translationWidth: value.translation.width, dayDelta: dragDayDelta)
             }
-            .onEnded { value in
-                let moved = abs(value.translation.width) + abs(value.translation.height)
-                if moved < tapSlop {
+            .onEnded { _ in
+                if !dragDidMove {
                     dragLogID = nil
                     onSelect(log)
                 } else {
@@ -276,7 +294,6 @@ struct MonthTimelineView: View {
         return starts[target] - starts[origIndex]
     }
 
-    /// 押下位置（ブロック内 X 座標）から操作モードを決める。
 }
 
 // MARK: - ドラッグ操作
@@ -340,44 +357,30 @@ extension MonthTimelineView {
         return Date(timeIntervalSinceReferenceDate: rounded)
     }
 
+    /// ドラッグ中のスナップ後の着地時刻を返す。
+    func snappedDragTimes() -> (start: Date, end: Date) {
+        var start = dragStart
+        var end = dragEnd
+        switch dragMode {
+        case .move:
+            let duration = end.timeIntervalSince(start)
+            start = snapped(start)
+            end = start.addingTimeInterval(duration)
+        case .resizeStart:
+            start = snapped(start)
+            if end.timeIntervalSince(start) < minDuration {
+                start = end.addingTimeInterval(-minDuration)
+            }
+        case .resizeEnd:
+            end = snapped(end)
+            if end.timeIntervalSince(start) < minDuration {
+                end = start.addingTimeInterval(minDuration)
+            }
+        }
+        return (start, end)
+    }
+
     func xForHour(_ hour: Int) -> CGFloat {
         CGFloat(hour - rangeStartHour) * pointsPerHour
     }
-}
-
-// MARK: - 座標変換・表示範囲
-
-extension MonthTimelineView {
-    /// 計測中ログは「現在時刻（その日を超えない範囲）」を終了として扱う。
-    func effectiveEnd(of log: TimeLog) -> Date {
-        if let end = log.endDate { return end }
-        let dayEnd = dayStart(of: log.startDate).addingTimeInterval(24 * 3600)
-        return min(Date(), dayEnd)
-    }
-
-    func dayStart(of date: Date) -> Date {
-        Calendar.current.startOfDay(for: date)
-    }
-
-    /// dayStart からの経過時間（時）。負やはみ出しは clamp。
-    func hourOffset(of date: Date, dayStart: Date) -> Double {
-        let hours = date.timeIntervalSince(dayStart) / 3600
-        return min(24, max(0, hours))
-    }
-
-    /// 時刻 → 当日トラック内の X 座標。
-    func xPos(_ date: Date, dayStart: Date) -> CGFloat {
-        CGFloat(hourOffset(of: date, dayStart: dayStart) - Double(rangeStartHour)) * pointsPerHour
-    }
-
-    /// 横軸の表示開始時（固定 0 時）。
-    var rangeStartHour: Int { 0 }
-
-    /// 横軸の表示終了時（固定 24 時 = 23:59 まで）。
-    var rangeEndHour: Int { 24 }
-
-    var trackWidth: CGFloat {
-        CGFloat(rangeEndHour - rangeStartHour) * pointsPerHour
-    }
-
 }
