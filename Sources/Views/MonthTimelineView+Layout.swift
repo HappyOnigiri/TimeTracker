@@ -224,6 +224,23 @@ extension MonthTimelineView {
     }
 }
 
+// MARK: - 斜線ハッチングパターン
+
+struct HatchPattern: Shape {
+    var spacing: CGFloat = 6
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let count = Int((rect.width + rect.height) / spacing)
+        for idx in 0...count {
+            let xPos = rect.minX + CGFloat(idx) * spacing
+            path.move(to: CGPoint(x: xPos, y: rect.minY))
+            path.addLine(to: CGPoint(x: xPos - rect.height, y: rect.maxY))
+        }
+        return path
+    }
+}
+
 // MARK: - カーソル
 
 extension View {

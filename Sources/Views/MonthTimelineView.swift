@@ -214,7 +214,9 @@ struct MonthTimelineView: View {
     private func blockContent(log: TimeLog, start: Date, end: Date, width: CGFloat) -> some View {
         let hasNotes = !log.notes.isEmpty
         let dim = dimBlocksWithoutNotes && !hasNotes && !log.isRunning
-        let strokeColor: Color = log.isRunning ? .green : dim ? .orange : hasNotes ? .white.opacity(0.7) : .white.opacity(0.4)
+        let strokeColor: Color = log.isRunning ? .green
+            : dim ? .orange
+            : hasNotes ? .white.opacity(0.7) : .white.opacity(0.4)
         let strokeWidth: CGFloat = log.isRunning ? 1.5 : dim ? 1.0 : hasNotes ? 1.0 : 0.5
         let fillOpacity: Double = log.isRunning ? 0.25 : dim ? 0.5 : 0.85
         ZStack(alignment: .leading) {
@@ -394,21 +396,5 @@ extension MonthTimelineView {
 
     func xForHour(_ hour: Int) -> CGFloat {
         CGFloat(hour - rangeStartHour) * pointsPerHour
-    }
-}
-
-/// 斜線ハッチングパターン。
-private struct HatchPattern: Shape {
-    var spacing: CGFloat = 6
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let count = Int((rect.width + rect.height) / spacing)
-        for i in 0...count {
-            let x = rect.minX + CGFloat(i) * spacing
-            path.move(to: CGPoint(x: x, y: rect.minY))
-            path.addLine(to: CGPoint(x: x - rect.height, y: rect.maxY))
-        }
-        return path
     }
 }
