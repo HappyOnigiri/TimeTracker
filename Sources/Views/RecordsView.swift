@@ -40,8 +40,8 @@ struct RecordsView: View {
                 log: target.log,
                 projects: projects,
                 defaultDay: target.day,
-                onSave: { project, start, end in
-                    save(target: target, project: project, start: start, end: end)
+                onSave: { project, start, end, notes in
+                    save(target: target, project: project, start: start, end: end, notes: notes)
                 },
                 onDelete: target.log.map { log in
                     { _ in delete(log) }

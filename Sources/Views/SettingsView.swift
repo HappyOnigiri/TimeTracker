@@ -15,6 +15,10 @@ struct SettingsView: View {
     private var allowConcurrentTracking = AppSettingsDefault.allowConcurrentTracking
     @AppStorage(AppSettingsKey.timelineSnapMinutes)
     private var timelineSnapMinutes = AppSettingsDefault.timelineSnapMinutes
+    @AppStorage(AppSettingsKey.promptForWorkNoteOnStop)
+    private var promptForWorkNoteOnStop = AppSettingsDefault.promptForWorkNoteOnStop
+    @AppStorage(AppSettingsKey.dimBlocksWithoutNotes)
+    private var dimBlocksWithoutNotes = AppSettingsDefault.dimBlocksWithoutNotes
 
     /// ログイン項目（自動起動）の登録状態。システム側の状態を反映する。
     @State private var launchAtLogin = LoginItemService.isEnabled
@@ -73,6 +77,10 @@ struct SettingsView: View {
                 Text("オフにすると、あるプロジェクトを開始したとき他の計測は自動停止します。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Toggle("計測停止時に作業内容の入力を促す", isOn: $promptForWorkNoteOnStop)
+                Text("計測を停止したとき、またはアイドルで自動停止したときに作業内容を入力するダイアログを表示します。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             Section("タイムライン") {
                 Picker("ドラッグ操作のスナップ単位", selection: $timelineSnapMinutes) {
@@ -84,6 +92,7 @@ struct SettingsView: View {
                 Text("タイムラインでブロックを移動・リサイズしたときの時刻の丸め幅です。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Toggle("作業内容が未入力のブロックを目立たせる", isOn: $dimBlocksWithoutNotes)
             }
             Section("起動") {
                 Toggle("Mac 起動時に自動的に開く", isOn: $launchAtLogin)

@@ -6,15 +6,23 @@ extension RecordsView {
     // MARK: - 行
 
     @ViewBuilder
-    func row(for log: TimeLog) -> some View {
+    func row(for log: TimeLog) -> some View { // swiftlint:disable:this function_body_length
         HStack(spacing: 12) {
             Circle()
                 .fill(log.project?.color ?? .gray)
                 .frame(width: 10, height: 10)
 
-            Text(log.project?.name ?? "（不明）")
-                .lineLimit(1)
-                .frame(minWidth: 80, alignment: .leading)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(log.project?.name ?? "（不明）")
+                    .lineLimit(1)
+                if !log.notes.isEmpty {
+                    Text(log.notes.joined(separator: ", "))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            .frame(minWidth: 80, alignment: .leading)
 
             Spacer()
 
@@ -96,12 +104,12 @@ extension RecordsView {
         TimeLogEditing.delete(log, in: context)
     }
 
-    func save(target: EditorTarget, project: Project, start: Date, end: Date) {
+    func save(target: EditorTarget, project: Project, start: Date, end: Date, notes: [String]) {
         switch target {
         case .add:
-            TimeLogEditing.add(project: project, start: start, end: end, in: context)
+            TimeLogEditing.add(project: project, start: start, end: end, notes: notes, in: context)
         case .edit(let log):
-            TimeLogEditing.update(log, project: project, start: start, end: end, in: context)
+            TimeLogEditing.update(log, project: project, start: start, end: end, notes: notes, in: context)
         }
     }
 }

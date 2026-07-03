@@ -2,7 +2,7 @@ import Foundation
 
 /// タイムログを CSV 文字列へ変換する純粋ロジック。
 enum CSVExporter {
-    static let header = "project,start,end,duration_seconds"
+    static let header = "project,start,end,duration_seconds,notes"
 
     /// RFC 4180 準拠の CSV を生成する。日時は ISO 8601。計測中のログは除外する。
     ///
@@ -25,11 +25,13 @@ enum CSVExporter {
             guard clippedEnd > clippedStart else { continue }
             let name = log.project?.name ?? "(削除済み)"
             let duration = Int(clippedEnd.timeIntervalSince(clippedStart).rounded())
+            let notesField = log.notes.joined(separator: "; ")
             let fields = [
                 escape(name),
                 formatter.string(from: clippedStart),
                 formatter.string(from: clippedEnd),
-                String(duration)
+                String(duration),
+                escape(notesField)
             ]
             rows.append(fields.joined(separator: ","))
         }

@@ -25,6 +25,9 @@ final class TimerEngine {
     @ObservationIgnored private var idleStoppedProjectIDs: Set<UUID> = []
     @ObservationIgnored private var idleAlertPanel: NSPanel?
 
+    private(set) var pendingNoteLogs: [TimeLog] = []
+    @ObservationIgnored private var workNotePanel: NSPanel?
+
     @ObservationIgnored private var context: ModelContext?
     @ObservationIgnored private var settings = AppSettings()
     @ObservationIgnored private var idleTimer: Timer?
@@ -58,7 +61,7 @@ final class TimerEngine {
         guard let context else { return }
         guard !isRunning(project) else { return }
         if !settings.allowConcurrentTracking {
-            stopAll(now: now)
+            stopAll(now: now, promptForNotes: true)
         }
         context.insert(TimeLog(project: project, startDate: now))
         save()
@@ -66,7 +69,7 @@ final class TimerEngine {
     }
 
     /// プロジェクトの計測を停止する。
-    func stop(_ project: Project, now: Date = Date()) {
+    func stop(_ project: Project, now: Date = Date(), promptForNotes: Bool = false) {
         guard context != nil else { return }
         let targetID = project.id
         let openLogs = fetchOpenLogs().filter { $0.project?.id == targetID }
@@ -75,18 +78,22 @@ final class TimerEngine {
         }
         if !openLogs.isEmpty { save() }
         refreshRunningState()
+        if promptForNotes && settings.promptForWorkNoteOnStop && !openLogs.isEmpty {
+            pendingNoteLogs.append(contentsOf: openLogs)
+            showWorkNotePrompt()
+        }
     }
 
     func toggle(_ project: Project, now: Date = Date()) {
         if isRunning(project) {
-            stop(project, now: now)
+            stop(project, now: now, promptForNotes: true)
         } else {
             start(project, now: now)
         }
     }
 
     /// 稼働中のすべてのタイマーを停止する。
-    func stopAll(now: Date = Date()) {
+    func stopAll(now: Date = Date(), promptForNotes: Bool = false) {
         let openLogs = fetchOpenLogs()
         guard !openLogs.isEmpty else { return }
         for log in openLogs {
@@ -94,6 +101,10 @@ final class TimerEngine {
         }
         save()
         refreshRunningState()
+        if promptForNotes && settings.promptForWorkNoteOnStop {
+            pendingNoteLogs.append(contentsOf: openLogs)
+            showWorkNotePrompt()
+        }
     }
 
     // MARK: - アイドル検知
@@ -146,12 +157,18 @@ final class TimerEngine {
         save()
         refreshRunningState()
 
+        if settings.promptForWorkNoteOnStop {
+            pendingNoteLogs.append(contentsOf: openLogs)
+        }
+
         idleStoppedProjectIDs = stoppedIDs
         idleStoppedProjectNames = Array(
             Set(openLogs.compactMap { $0.project?.name })
         ).sorted()
         if settings.idleAlertEnabled {
             showIdleStopAlert()
+        } else if settings.promptForWorkNoteOnStop {
+            showWorkNotePrompt()
         }
     }
 
@@ -177,15 +194,68 @@ final class TimerEngine {
         idleAlertPanel = nil
     }
 
+    // MARK: - 作業内容プロンプト
+
+    func saveWorkNotes(_ notes: [String]) {
+        let trimmed = notes.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        for log in pendingNoteLogs {
+            log.notes = trimmed
+        }
+        if !pendingNoteLogs.isEmpty { save() }
+        pendingNoteLogs = []
+        dismissWorkNotePrompt()
+    }
+
+    func skipWorkNotes() {
+        pendingNoteLogs = []
+        dismissWorkNotePrompt()
+    }
+
+    private func dismissWorkNotePrompt() {
+        workNotePanel?.close()
+        workNotePanel = nil
+    }
+
+    private func showWorkNotePrompt() {
+        if let existing = workNotePanel {
+            existing.close()
+            workNotePanel = nil
+        }
+        guard let context else { return }
+
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 480, height: 350),
+            styleMask: [.titled, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        panel.title = "作業内容を記録"
+        panel.level = .floating
+        panel.isReleasedWhenClosed = false
+        panel.hidesOnDeactivate = false
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        centerPanelOnCursorScreen(panel)
+
+        let view = WorkNotePromptView(engine: self)
+            .modelContainer(context.container)
+        panel.contentView = NSHostingView(rootView: view)
+
+        workNotePanel = panel
+        panel.makeKeyAndOrderFront(nil)
+        NSApp.activate()
+    }
+
     private func showIdleStopAlert() {
         if let existing = idleAlertPanel {
             existing.close()
             idleAlertPanel = nil
         }
 
+        let panelHeight: CGFloat = settings.promptForWorkNoteOnStop ? 420 : 280
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 480, height: 280),
-            styleMask: [.titled],
+            contentRect: NSRect(x: 0, y: 0, width: 480, height: panelHeight),
+            styleMask: [.titled, .resizable],
             backing: .buffered,
             defer: false
         )
@@ -196,7 +266,9 @@ final class TimerEngine {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         centerPanelOnCursorScreen(panel)
 
+        guard let context else { return }
         let alertView = IdleStopAlertView(engine: self)
+            .modelContainer(context.container)
         panel.contentView = NSHostingView(rootView: alertView)
 
         idleAlertPanel = panel

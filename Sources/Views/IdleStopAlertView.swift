@@ -1,8 +1,14 @@
+import SwiftData
 import SwiftUI
 
-/// アイドル自動停止時に表示する通知ビュー。
 struct IdleStopAlertView: View {
     let engine: TimerEngine
+
+    @AppStorage(AppSettingsKey.promptForWorkNoteOnStop)
+    private var promptForWorkNoteOnStop = AppSettingsDefault.promptForWorkNoteOnStop
+
+    @Query(sort: \TimeLog.startDate) private var allLogs: [TimeLog]
+    @State private var notes: [String] = []
 
     var body: some View {
         VStack(spacing: 20) {
@@ -25,14 +31,23 @@ struct IdleStopAlertView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
+            if promptForWorkNoteOnStop {
+                WorkNoteInputView(
+                    notes: $notes,
+                    suggestions: WorkNoteSuggestions.candidates(from: allLogs)
+                )
+            }
+
             HStack(spacing: 16) {
                 Button("閉じる") {
+                    saveNotesIfNeeded()
                     engine.dismissIdleNotification()
                 }
                 .keyboardShortcut(.cancelAction)
                 .controlSize(.large)
 
                 Button("計測を再開") {
+                    saveNotesIfNeeded()
                     engine.resumeAfterIdle()
                 }
                 .keyboardShortcut(.defaultAction)
@@ -42,5 +57,13 @@ struct IdleStopAlertView: View {
         }
         .padding(32)
         .frame(width: 440)
+    }
+
+    private func saveNotesIfNeeded() {
+        if promptForWorkNoteOnStop && !notes.isEmpty {
+            engine.saveWorkNotes(notes)
+        } else {
+            engine.skipWorkNotes()
+        }
     }
 }

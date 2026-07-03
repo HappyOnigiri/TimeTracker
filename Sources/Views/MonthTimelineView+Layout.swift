@@ -154,11 +154,17 @@ extension MonthTimelineView {
         formatter.locale = Locale(identifier: "ja_JP")
         formatter.dateFormat = "H:mm"
         let name = log.project?.name ?? "（不明）"
+        var text: String
         if log.isRunning {
-            return "\(name)  \(formatter.string(from: start)) 〜 計測中"
+            text = "\(name)  \(formatter.string(from: start)) 〜 計測中"
+        } else {
+            let duration = DurationFormatter.string(from: end.timeIntervalSince(start))
+            text = "\(name)  \(formatter.string(from: start)) 〜 \(formatter.string(from: end))  (\(duration))"
         }
-        let duration = DurationFormatter.string(from: end.timeIntervalSince(start))
-        return "\(name)  \(formatter.string(from: start)) 〜 \(formatter.string(from: end))  (\(duration))"
+        if !log.notes.isEmpty {
+            text += "\n" + log.notes.joined(separator: ", ")
+        }
+        return text
     }
 
     static func dayLabel(for date: Date) -> String {
@@ -215,6 +221,23 @@ extension MonthTimelineView {
                 .offset(x: snapX, y: -blockH + 2)
         }
         .allowsHitTesting(false)
+    }
+}
+
+// MARK: - 斜線ハッチングパターン
+
+struct HatchPattern: Shape {
+    var spacing: CGFloat = 6
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let count = Int((rect.width + rect.height) / spacing)
+        for idx in 0...count {
+            let xPos = rect.minX + CGFloat(idx) * spacing
+            path.move(to: CGPoint(x: xPos, y: rect.minY))
+            path.addLine(to: CGPoint(x: xPos - rect.height, y: rect.maxY))
+        }
+        return path
     }
 }
 
