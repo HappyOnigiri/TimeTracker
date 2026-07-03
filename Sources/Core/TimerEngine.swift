@@ -61,7 +61,7 @@ final class TimerEngine {
         guard let context else { return }
         guard !isRunning(project) else { return }
         if !settings.allowConcurrentTracking {
-            stopAll(now: now)
+            stopAll(now: now, promptForNotes: true)
         }
         context.insert(TimeLog(project: project, startDate: now))
         save()
@@ -93,7 +93,7 @@ final class TimerEngine {
     }
 
     /// 稼働中のすべてのタイマーを停止する。
-    func stopAll(now: Date = Date()) {
+    func stopAll(now: Date = Date(), promptForNotes: Bool = false) {
         let openLogs = fetchOpenLogs()
         guard !openLogs.isEmpty else { return }
         for log in openLogs {
@@ -101,6 +101,10 @@ final class TimerEngine {
         }
         save()
         refreshRunningState()
+        if promptForNotes && settings.promptForWorkNoteOnStop {
+            pendingNoteLogs.append(contentsOf: openLogs)
+            showWorkNotePrompt()
+        }
     }
 
     // MARK: - アイドル検知
@@ -186,7 +190,6 @@ final class TimerEngine {
     func dismissIdleNotification() {
         idleStoppedProjectIDs = []
         idleStoppedProjectNames = []
-        pendingNoteLogs = []
         idleAlertPanel?.close()
         idleAlertPanel = nil
     }
@@ -223,7 +226,7 @@ final class TimerEngine {
 
         let panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: 480, height: 350),
-            styleMask: [.titled],
+            styleMask: [.titled, .resizable],
             backing: .buffered,
             defer: false
         )
@@ -252,7 +255,7 @@ final class TimerEngine {
         let panelHeight: CGFloat = settings.promptForWorkNoteOnStop ? 420 : 280
         let panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: 480, height: panelHeight),
-            styleMask: [.titled],
+            styleMask: [.titled, .resizable],
             backing: .buffered,
             defer: false
         )
@@ -263,8 +266,9 @@ final class TimerEngine {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         centerPanelOnCursorScreen(panel)
 
+        guard let context else { return }
         let alertView = IdleStopAlertView(engine: self)
-            .modelContainer(context!.container)
+            .modelContainer(context.container)
         panel.contentView = NSHostingView(rootView: alertView)
 
         idleAlertPanel = panel

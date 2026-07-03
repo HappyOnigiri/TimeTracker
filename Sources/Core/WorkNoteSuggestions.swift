@@ -13,6 +13,7 @@ enum WorkNoteSuggestions {
         }
         return latestDate
             .sorted { $0.value > $1.value }
+            .prefix(20)
             .map(\.key)
     }
 }
