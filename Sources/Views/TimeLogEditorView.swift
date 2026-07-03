@@ -1,23 +1,24 @@
+import SwiftData
 import SwiftUI
 
-/// 記録（TimeLog）の新規作成/編集シート。
-/// `ProjectEditorView` と同じ「`.sheet` 内の子ビュー＋ `onSave` クロージャ」構造。
 struct TimeLogEditorView: View {
-    let log: TimeLog?            // nil = 新規
-    let projects: [Project]     // Picker 用
-    let defaultDay: Date        // 新規時の初期日
-    let onSave: (Project, Date, Date) -> Void
+    let log: TimeLog?
+    let projects: [Project]
+    let defaultDay: Date
+    let onSave: (Project, Date, Date, [String]) -> Void
     let onDelete: ((TimeLog) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
+    @Query(sort: \TimeLog.startDate) private var allLogs: [TimeLog]
     @State private var selectedProjectID: UUID?
     @State private var startDate: Date
     @State private var endDate: Date
+    @State private var notes: [String]
 
     init(log: TimeLog?,
          projects: [Project],
          defaultDay: Date,
-         onSave: @escaping (Project, Date, Date) -> Void,
+         onSave: @escaping (Project, Date, Date, [String]) -> Void,
          onDelete: ((TimeLog) -> Void)? = nil) {
         self.log = log
         self.projects = projects
@@ -29,12 +30,14 @@ struct TimeLogEditorView: View {
             _selectedProjectID = State(initialValue: log.project?.id)
             _startDate = State(initialValue: log.startDate)
             _endDate = State(initialValue: log.endDate ?? log.startDate.addingTimeInterval(3600))
+            _notes = State(initialValue: log.notes)
         } else {
             let calendar = Calendar.current
             let start = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: defaultDay) ?? defaultDay
             _selectedProjectID = State(initialValue: projects.first?.id)
             _startDate = State(initialValue: start)
             _endDate = State(initialValue: start.addingTimeInterval(3600))
+            _notes = State(initialValue: [])
         }
     }
 
@@ -86,6 +89,11 @@ struct TimeLogEditorView: View {
                     .fontWeight(.medium)
             }
 
+            WorkNoteInputView(
+                notes: $notes,
+                suggestions: WorkNoteSuggestions.candidates(from: allLogs)
+            )
+
             Spacer().frame(height: 10)
 
             HStack {
@@ -100,7 +108,7 @@ struct TimeLogEditorView: View {
                 Spacer()
                 Button("保存") {
                     if let project = projects.first(where: { $0.id == selectedProjectID }) {
-                        onSave(project, startDate, endDate)
+                        onSave(project, startDate, endDate, notes)
                     }
                     dismiss()
                 }

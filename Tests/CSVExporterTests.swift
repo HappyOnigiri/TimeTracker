@@ -11,10 +11,10 @@ struct CSVExporterTests {
                           endDate: TestSupport.date(2025, 1, 10, 10, 0))
         let csv = CSVExporter.makeCSV(logs: [log])
         let lines = csv.split(separator: "\n", omittingEmptySubsequences: true)
-        #expect(lines[0] == "project,start,end,duration_seconds")
+        #expect(lines[0] == "project,start,end,duration_seconds,notes")
         #expect(lines.count == 2)
         #expect(lines[1].hasPrefix("実装,"))
-        #expect(lines[1].hasSuffix(",3600"))
+        #expect(lines[1].hasSuffix(",3600,"))
     }
 
     @Test("計測中ログは除外される")
@@ -37,7 +37,7 @@ struct CSVExporterTests {
         let csv = CSVExporter.makeCSV(logs: [log], clipTo: june)
         let lines = csv.split(separator: "\n", omittingEmptySubsequences: true)
         #expect(lines.count == 2)
-        #expect(lines[1].hasSuffix(",7200"))
+        #expect(lines[1].hasSuffix(",7200,"))
     }
 
     @Test("clipTo 範囲と重ならないログは除外される")
@@ -71,6 +71,29 @@ struct CSVExporterTests {
         let csv = CSVExporter.makeCSV(logs: [log])
         let lines = csv.split(separator: "\n", omittingEmptySubsequences: true)
         #expect(lines[1].hasPrefix("'=1+1,"))
+    }
+
+    @Test("notes はセミコロン結合で出力される")
+    func emitsNotes() {
+        let project = Project(name: "実装")
+        let log = TimeLog(project: project,
+                          startDate: TestSupport.date(2025, 1, 10, 9, 0),
+                          endDate: TestSupport.date(2025, 1, 10, 10, 0),
+                          notes: ["設計", "レビュー"])
+        let csv = CSVExporter.makeCSV(logs: [log])
+        let lines = csv.split(separator: "\n", omittingEmptySubsequences: true)
+        #expect(lines[1].hasSuffix(",3600,設計; レビュー"))
+    }
+
+    @Test("notes 内の特殊文字はエスケープされる")
+    func escapesNotesWithSpecialChars() {
+        let project = Project(name: "X")
+        let log = TimeLog(project: project,
+                          startDate: TestSupport.date(2025, 1, 10, 9, 0),
+                          endDate: TestSupport.date(2025, 1, 10, 9, 30),
+                          notes: ["=危険な数式"])
+        let csv = CSVExporter.makeCSV(logs: [log])
+        #expect(csv.contains("'=危険な数式"))
     }
 
     @Test("数式トリガかつカンマを含む名前は無害化後にクォートされる")

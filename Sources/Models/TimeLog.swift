@@ -9,12 +9,14 @@ final class TimeLog {
     /// 終了時刻。`nil` の間は計測中。
     var endDate: Date?
     var project: Project?
+    var notes: [String] = []
 
-    init(project: Project?, startDate: Date = Date(), endDate: Date? = nil) {
+    init(project: Project?, startDate: Date = Date(), endDate: Date? = nil, notes: [String] = []) {
         self.id = UUID()
         self.project = project
         self.startDate = startDate
         self.endDate = endDate
+        self.notes = notes
     }
 
     var isRunning: Bool { endDate == nil }

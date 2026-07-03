@@ -5,16 +5,18 @@ import SwiftData
 /// リスト編集（RecordsView）とタイムライン編集（DayTimelineView）の双方から利用する。
 enum TimeLogEditing {
     /// 新規記録を追加する。
-    static func add(project: Project, start: Date, end: Date, in context: ModelContext) {
-        context.insert(TimeLog(project: project, startDate: start, endDate: end))
+    static func add(project: Project, start: Date, end: Date, notes: [String] = [], in context: ModelContext) {
+        context.insert(TimeLog(project: project, startDate: start, endDate: end, notes: notes))
         try? context.save()
     }
 
-    /// 既存記録のプロジェクト・開始・終了を更新する。
-    static func update(_ log: TimeLog, project: Project, start: Date, end: Date, in context: ModelContext) {
+    static func update( // swiftlint:disable:this function_parameter_count
+        _ log: TimeLog, project: Project, start: Date, end: Date, notes: [String], in context: ModelContext
+    ) {
         log.project = project
         log.startDate = start
         log.endDate = end
+        log.notes = notes
         try? context.save()
     }
 
@@ -27,7 +29,7 @@ enum TimeLogEditing {
 
     /// 同プロジェクト・同時間帯で記録を複製する。
     static func duplicate(_ log: TimeLog, in context: ModelContext) {
-        context.insert(TimeLog(project: log.project, startDate: log.startDate, endDate: log.endDate))
+        context.insert(TimeLog(project: log.project, startDate: log.startDate, endDate: log.endDate, notes: log.notes))
         try? context.save()
     }
 
