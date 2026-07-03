@@ -11,6 +11,7 @@ enum AppSettingsKey {
     static let allowConcurrentTracking = "allowConcurrentTracking"
     static let timelineSnapMinutes = "timelineSnapMinutes"
     static let promptForWorkNoteOnStop = "promptForWorkNoteOnStop"
+    static let dimBlocksWithoutNotes = "dimBlocksWithoutNotes"
 }
 
 enum AppSettingsDefault {
@@ -20,6 +21,7 @@ enum AppSettingsDefault {
     static let allowConcurrentTracking = true
     static let timelineSnapMinutes = 5
     static let promptForWorkNoteOnStop = true
+    static let dimBlocksWithoutNotes = true
 }
 
 /// 非 View 層から設定値を読むためのアクセサ。
@@ -34,7 +36,8 @@ struct AppSettings {
             AppSettingsKey.idleAlertEnabled: AppSettingsDefault.idleAlertEnabled,
             AppSettingsKey.allowConcurrentTracking: AppSettingsDefault.allowConcurrentTracking,
             AppSettingsKey.timelineSnapMinutes: AppSettingsDefault.timelineSnapMinutes,
-            AppSettingsKey.promptForWorkNoteOnStop: AppSettingsDefault.promptForWorkNoteOnStop
+            AppSettingsKey.promptForWorkNoteOnStop: AppSettingsDefault.promptForWorkNoteOnStop,
+            AppSettingsKey.dimBlocksWithoutNotes: AppSettingsDefault.dimBlocksWithoutNotes
         ])
     }
 
@@ -68,5 +71,9 @@ struct AppSettings {
 
     var promptForWorkNoteOnStop: Bool {
         defaults.bool(forKey: AppSettingsKey.promptForWorkNoteOnStop)
+    }
+
+    var dimBlocksWithoutNotes: Bool {
+        defaults.bool(forKey: AppSettingsKey.dimBlocksWithoutNotes)
     }
 }

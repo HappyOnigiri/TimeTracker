@@ -47,6 +47,8 @@ struct MonthTimelineView: View {
     /// 確定時のスナップ単位（分）。
     @AppStorage(AppSettingsKey.timelineSnapMinutes)
     var snapMinutes: Int = AppSettingsDefault.timelineSnapMinutes
+    @AppStorage(AppSettingsKey.dimBlocksWithoutNotes)
+    var dimBlocksWithoutNotes: Bool = AppSettingsDefault.dimBlocksWithoutNotes
     /// リサイズ時の最小計測時間。
     var minDuration: TimeInterval { TimeInterval(snapMinutes * 60) }
 
@@ -210,34 +212,31 @@ struct MonthTimelineView: View {
 
     @ViewBuilder
     private func blockContent(log: TimeLog, start: Date, end: Date, width: CGFloat) -> some View {
-        let strokeColor = log.isRunning ? Color.green : Color.white.opacity(0.4)
         let hasNotes = !log.notes.isEmpty
+        let dim = dimBlocksWithoutNotes && !hasNotes && !log.isRunning
+        let strokeColor: Color = log.isRunning ? .green : dim ? .orange : hasNotes ? .white.opacity(0.7) : .white.opacity(0.4)
+        let strokeWidth: CGFloat = log.isRunning ? 1.5 : dim ? 1.0 : hasNotes ? 1.0 : 0.5
+        let fillOpacity: Double = log.isRunning ? 0.25 : dim ? 0.5 : 0.85
         ZStack(alignment: .leading) {
             RoundedRectangle(cornerRadius: 5)
-                .fill((log.project?.color ?? .gray).opacity(log.isRunning ? 0.25 : 0.85))
+                .fill((log.project?.color ?? .gray).opacity(fillOpacity))
                 .overlay(
                     RoundedRectangle(cornerRadius: 5)
-                        .stroke(strokeColor, lineWidth: log.isRunning ? 1.5 : 0.5)
+                        .stroke(strokeColor, lineWidth: strokeWidth)
                 )
 
+            if dim {
+                HatchPattern()
+                    .stroke(Color.orange.opacity(0.3), lineWidth: 0.5)
+                    .clipShape(RoundedRectangle(cornerRadius: 5))
+            }
+
             if width > 36 {
-                HStack(spacing: 3) {
-                    Text(log.isRunning ? "計測中" : (log.project?.name ?? "（不明）"))
-                        .font(.caption2.bold())
-                        .lineLimit(1)
-                        .foregroundStyle(log.isRunning ? Color.green : Color.white)
-                    if hasNotes && !log.isRunning {
-                        Image(systemName: "note.text")
-                            .font(.system(size: 8))
-                            .foregroundStyle(Color.white.opacity(0.7))
-                    }
-                }
-                .padding(.horizontal, 5)
-            } else if hasNotes && !log.isRunning {
-                Image(systemName: "note.text")
-                    .font(.system(size: 8))
-                    .foregroundStyle(Color.white.opacity(0.7))
-                    .frame(maxWidth: .infinity)
+                Text(log.isRunning ? "計測中" : (log.project?.name ?? "（不明）"))
+                    .font(.caption2.bold())
+                    .lineLimit(1)
+                    .foregroundStyle(log.isRunning ? Color.green : Color.white)
+                    .padding(.horizontal, 5)
             }
         }
         .help(blockHelp(log: log, start: start, end: end))
@@ -395,5 +394,21 @@ extension MonthTimelineView {
 
     func xForHour(_ hour: Int) -> CGFloat {
         CGFloat(hour - rangeStartHour) * pointsPerHour
+    }
+}
+
+/// 斜線ハッチングパターン。
+private struct HatchPattern: Shape {
+    var spacing: CGFloat = 6
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let count = Int((rect.width + rect.height) / spacing)
+        for i in 0...count {
+            let x = rect.minX + CGFloat(i) * spacing
+            path.move(to: CGPoint(x: x, y: rect.minY))
+            path.addLine(to: CGPoint(x: x - rect.height, y: rect.maxY))
+        }
+        return path
     }
 }
