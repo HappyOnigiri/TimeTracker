@@ -211,6 +211,7 @@ struct MonthTimelineView: View {
     @ViewBuilder
     private func blockContent(log: TimeLog, start: Date, end: Date, width: CGFloat) -> some View {
         let strokeColor = log.isRunning ? Color.green : Color.white.opacity(0.4)
+        let hasNotes = !log.notes.isEmpty
         ZStack(alignment: .leading) {
             RoundedRectangle(cornerRadius: 5)
                 .fill((log.project?.color ?? .gray).opacity(log.isRunning ? 0.25 : 0.85))
@@ -220,11 +221,23 @@ struct MonthTimelineView: View {
                 )
 
             if width > 36 {
-                Text(log.isRunning ? "計測中" : (log.project?.name ?? "（不明）"))
-                    .font(.caption2.bold())
-                    .lineLimit(1)
-                    .foregroundStyle(log.isRunning ? Color.green : Color.white)
-                    .padding(.horizontal, 5)
+                HStack(spacing: 3) {
+                    Text(log.isRunning ? "計測中" : (log.project?.name ?? "（不明）"))
+                        .font(.caption2.bold())
+                        .lineLimit(1)
+                        .foregroundStyle(log.isRunning ? Color.green : Color.white)
+                    if hasNotes && !log.isRunning {
+                        Image(systemName: "note.text")
+                            .font(.system(size: 8))
+                            .foregroundStyle(Color.white.opacity(0.7))
+                    }
+                }
+                .padding(.horizontal, 5)
+            } else if hasNotes && !log.isRunning {
+                Image(systemName: "note.text")
+                    .font(.system(size: 8))
+                    .foregroundStyle(Color.white.opacity(0.7))
+                    .frame(maxWidth: .infinity)
             }
         }
         .help(blockHelp(log: log, start: start, end: end))

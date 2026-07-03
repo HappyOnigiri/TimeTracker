@@ -154,11 +154,17 @@ extension MonthTimelineView {
         formatter.locale = Locale(identifier: "ja_JP")
         formatter.dateFormat = "H:mm"
         let name = log.project?.name ?? "（不明）"
+        var text: String
         if log.isRunning {
-            return "\(name)  \(formatter.string(from: start)) 〜 計測中"
+            text = "\(name)  \(formatter.string(from: start)) 〜 計測中"
+        } else {
+            let duration = DurationFormatter.string(from: end.timeIntervalSince(start))
+            text = "\(name)  \(formatter.string(from: start)) 〜 \(formatter.string(from: end))  (\(duration))"
         }
-        let duration = DurationFormatter.string(from: end.timeIntervalSince(start))
-        return "\(name)  \(formatter.string(from: start)) 〜 \(formatter.string(from: end))  (\(duration))"
+        if !log.notes.isEmpty {
+            text += "\n" + log.notes.joined(separator: ", ")
+        }
+        return text
     }
 
     static func dayLabel(for date: Date) -> String {
