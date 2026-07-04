@@ -38,6 +38,20 @@ enum CSVExporter {
         return rows.joined(separator: "\n") + "\n"
     }
 
+    /// 作業内容別の集計 CSV を生成する。
+    static func makeNoteSummaryCSV(totals: [NoteTotal]) -> String {
+        var rows = ["note,duration_seconds,duration_hours"]
+        for total in totals {
+            let fields = [
+                escape(total.note),
+                String(Int(total.seconds)),
+                String(format: "%.1f", total.seconds / 3600)
+            ]
+            rows.append(fields.joined(separator: ","))
+        }
+        return rows.joined(separator: "\n") + "\n"
+    }
+
     /// CSV フィールドを安全化する。
     ///
     /// 1. 先頭が `=`/`+`/`-`/`@`/タブ/復帰の場合、表計算ソフトが数式として解釈する

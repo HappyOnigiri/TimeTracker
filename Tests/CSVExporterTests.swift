@@ -106,4 +106,23 @@ struct CSVExporterTests {
         // 先頭にシングルクォートを付与し、カンマを含むため全体を CSV クォートで囲む。
         #expect(csv.contains("\"'@SUM(A1,A2)\""))
     }
+
+    // MARK: - makeNoteSummaryCSV
+
+    @Test("作業内容別 CSV はヘッダと行が正しく出力される")
+    func noteSummaryCSVEmitsHeaderAndRows() {
+        let totals = [NoteTotal(note: "設計", seconds: 5400)]
+        let csv = CSVExporter.makeNoteSummaryCSV(totals: totals)
+        let lines = csv.split(separator: "\n", omittingEmptySubsequences: true)
+        #expect(lines[0] == "note,duration_seconds,duration_hours")
+        #expect(lines[1] == "設計,5400,1.5")
+    }
+
+    @Test("作業内容別 CSV は数式トリガをエスケープする")
+    func noteSummaryCSVEscapesSpecialChars() {
+        let totals = [NoteTotal(note: "=危険", seconds: 3600)]
+        let csv = CSVExporter.makeNoteSummaryCSV(totals: totals)
+        let lines = csv.split(separator: "\n", omittingEmptySubsequences: true)
+        #expect(lines[1] == "'=危険,3600,1.0")
+    }
 }

@@ -19,6 +19,13 @@ struct DailyDuration: Identifiable {
     var id: String { "\(projectID.uuidString)-\(day.timeIntervalSince1970)" }
 }
 
+/// 作業内容ごとの合計稼働時間。
+struct NoteTotal: Identifiable {
+    let note: String
+    let seconds: TimeInterval
+    var id: String { note }
+}
+
 /// TimeLog 群を期間で切り出し、合計/日次に集計する純粋ロジック。
 enum ReportAggregator {
     /// 集計途中の値を保持する内部アキュムレータ。
@@ -80,6 +87,37 @@ enum ReportAggregator {
                               name: $0.name, colorHex: $0.colorHex, seconds: $0.seconds)
             }
             .sorted { $0.day < $1.day }
+    }
+
+    /// 作業内容（note）ごとの合計稼働秒数を、稼働時間の降順で返す。
+    /// 1 ログに複数 note がある場合は note 数で均等割りし、合計が実稼働と一致するようにする。
+    static func noteTotals(
+        logs: [TimeLog],
+        in range: ClosedRange<Date>,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> [NoteTotal] {
+        var totals: [String: TimeInterval] = [:]
+        for log in logs {
+            let seconds = clippedDuration(for: log, in: range, now: now)
+            guard seconds > 0 else { continue }
+            let uniqueNotes = Set(
+                log.notes
+                    .map { $0.trimmingCharacters(in: .whitespaces) }
+                    .filter { !$0.isEmpty }
+            )
+            if uniqueNotes.isEmpty {
+                totals["(未分類)", default: 0] += seconds
+            } else {
+                let share = seconds / Double(uniqueNotes.count)
+                for note in uniqueNotes {
+                    totals[note, default: 0] += share
+                }
+            }
+        }
+        return totals
+            .map { NoteTotal(note: $0.key, seconds: $0.value) }
+            .sorted { $0.seconds > $1.seconds }
     }
 
     // MARK: - 内部

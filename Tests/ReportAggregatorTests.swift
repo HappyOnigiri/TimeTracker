@@ -52,4 +52,66 @@ struct ReportAggregatorTests {
         let totals = ReportAggregator.projectTotals(logs: [log], in: narrowRange, calendar: TestSupport.utcCalendar)
         #expect(totals[0].seconds == 3600)
     }
+
+    // MARK: - noteTotals
+
+    private var noteRange: ClosedRange<Date> {
+        TestSupport.date(2025, 1, 1)...TestSupport.date(2025, 2, 1)
+    }
+
+    @Test("複数 note を持つログは均等割りされる")
+    func noteTotalsSplitsEvenly() {
+        let project = Project(name: "A")
+        let log = TimeLog(project: project,
+                          startDate: TestSupport.date(2025, 1, 10, 9, 0),
+                          endDate: TestSupport.date(2025, 1, 10, 10, 0),
+                          notes: ["設計", "レビュー"])
+        let totals = ReportAggregator.noteTotals(logs: [log], in: noteRange, calendar: TestSupport.utcCalendar)
+        #expect(totals.count == 2)
+        let byNote = Dictionary(uniqueKeysWithValues: totals.map { ($0.note, $0.seconds) })
+        #expect(byNote["設計"] == 1800)
+        #expect(byNote["レビュー"] == 1800)
+    }
+
+    @Test("notes が空のログは「(未分類)」に集約される")
+    func noteTotalsGroupsEmptyNotesAsUncategorized() {
+        let project = Project(name: "A")
+        let log1 = TimeLog(project: project,
+                           startDate: TestSupport.date(2025, 1, 10, 9, 0),
+                           endDate: TestSupport.date(2025, 1, 10, 10, 0),
+                           notes: [])
+        let log2 = TimeLog(project: project,
+                           startDate: TestSupport.date(2025, 1, 11, 9, 0),
+                           endDate: TestSupport.date(2025, 1, 11, 10, 0),
+                           notes: [])
+        let totals = ReportAggregator.noteTotals(logs: [log1, log2], in: noteRange, calendar: TestSupport.utcCalendar)
+        #expect(totals.count == 1)
+        #expect(totals[0].note == "(未分類)")
+        #expect(totals[0].seconds == 7200)
+    }
+
+    @Test("同一ログ内の重複 note は dedup される")
+    func noteTotalsDedupsSameNoteInLog() {
+        let project = Project(name: "A")
+        let log = TimeLog(project: project,
+                          startDate: TestSupport.date(2025, 1, 10, 9, 0),
+                          endDate: TestSupport.date(2025, 1, 10, 10, 0),
+                          notes: ["設計", "設計"])
+        let totals = ReportAggregator.noteTotals(logs: [log], in: noteRange, calendar: TestSupport.utcCalendar)
+        #expect(totals.count == 1)
+        #expect(totals[0].note == "設計")
+        #expect(totals[0].seconds == 3600)
+    }
+
+    @Test("noteTotals は期間クリップを適用する")
+    func noteTotalsClipsToRange() {
+        let project = Project(name: "A")
+        let log = TimeLog(project: project,
+                          startDate: TestSupport.date(2025, 1, 9, 23, 0),
+                          endDate: TestSupport.date(2025, 1, 10, 1, 0),
+                          notes: ["実装"])
+        let narrowRange = TestSupport.date(2025, 1, 10)...TestSupport.date(2025, 1, 11)
+        let totals = ReportAggregator.noteTotals(logs: [log], in: narrowRange, calendar: TestSupport.utcCalendar)
+        #expect(totals[0].seconds == 3600)
+    }
 }
