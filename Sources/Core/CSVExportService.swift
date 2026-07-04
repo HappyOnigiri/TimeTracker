@@ -15,6 +15,17 @@ enum CSVExportService {
         clipTo range: ClosedRange<Date>? = nil,
         suggestedName: String = "timelogs.csv"
     ) -> ExportResult {
+        save(csv: CSVExporter.makeCSV(logs: logs, clipTo: range), suggestedName: suggestedName)
+    }
+
+    static func exportNoteSummary(
+        totals: [NoteTotal],
+        suggestedName: String = "note-summary.csv"
+    ) -> ExportResult {
+        save(csv: CSVExporter.makeNoteSummaryCSV(totals: totals), suggestedName: suggestedName)
+    }
+
+    private static func save(csv: String, suggestedName: String) -> ExportResult {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.commaSeparatedText]
         panel.nameFieldStringValue = suggestedName
@@ -23,7 +34,6 @@ enum CSVExportService {
         guard panel.runModal() == .OK, let url = panel.url else {
             return .cancelled
         }
-        let csv = CSVExporter.makeCSV(logs: logs, clipTo: range)
         do {
             try csv.write(to: url, atomically: true, encoding: .utf8)
             return .saved(url)

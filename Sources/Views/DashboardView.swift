@@ -24,6 +24,7 @@ struct DashboardView: View {
                 } else {
                     totalsSection
                     dailySection
+                    notesSection
                 }
             }
             .padding(20)
@@ -36,43 +37,26 @@ struct DashboardView: View {
 
     private var controls: some View {
         HStack(alignment: .center, spacing: 12) {
-            Button {
-                shiftMonth(by: -1)
-            } label: {
-                Image(systemName: "chevron.left")
-            }
-            .help("前の月")
-
+            Button { shiftMonth(by: -1) } label: { Image(systemName: "chevron.left") }
+                .help("前の月")
             Text(DashboardView.monthLabel(for: selectedMonth))
-                .font(.headline)
-                .monospacedDigit()
-                .frame(minWidth: 110)
-
-            Button {
-                shiftMonth(by: 1)
-            } label: {
-                Image(systemName: "chevron.right")
-            }
-            .help("次の月")
-            .disabled(isCurrentMonth)
-
-            Button("今月") {
-                selectedMonth = DashboardView.currentMonthStart
-            }
-            .disabled(isCurrentMonth)
-
+                .font(.headline).monospacedDigit().frame(minWidth: 110)
+            Button { shiftMonth(by: 1) } label: { Image(systemName: "chevron.right") }
+                .help("次の月").disabled(isCurrentMonth)
+            Button("今月") { selectedMonth = DashboardView.currentMonthStart }
+                .disabled(isCurrentMonth)
             Spacer()
             projectFilterMenu
-            Button("CSV 出力", systemImage: "square.and.arrow.up") {
-                exportCSV()
+            Menu {
+                Button("時間別 CSV") { exportCSV() }
+                Button("作業内容別 CSV") { exportNoteSummaryCSV() }
+            } label: {
+                Label("CSV 出力", systemImage: "square.and.arrow.up")
             }
         }
         .overlay(alignment: .bottomTrailing) {
             if let exportMessage {
-                Text(exportMessage)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .offset(y: 18)
+                Text(exportMessage).font(.caption).foregroundStyle(.secondary).offset(y: 18)
             }
         }
     }
@@ -126,6 +110,35 @@ struct DashboardView: View {
         }
     }
 
+    // MARK: - 作業内容別
+
+    private var notesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("作業内容別 稼働時間")
+                .font(.headline)
+            if noteTotals.count > 1 {
+                Text("1つの記録に複数の作業内容がある場合、時間を均等に配分")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Chart(noteTotals) { total in
+                BarMark(
+                    x: .value("時間", DurationFormatter.hours(from: total.seconds)),
+                    y: .value("作業内容", total.note)
+                )
+                .foregroundStyle(Color.accentColor.opacity(0.75))
+                .annotation(position: .trailing) {
+                    Text(DurationFormatter.compactHours(from: total.seconds))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .chartXAxisLabel("時間")
+            .chartLegend(.hidden)
+            .frame(height: max(120, CGFloat(noteTotals.count) * 32))
+        }
+    }
+
     // MARK: - 日次推移
 
     private var dailySection: some View {
@@ -166,20 +179,17 @@ struct DashboardView: View {
 
     // MARK: - 集計
 
-    /// 今月の 1 日 0:00。
-    private static var currentMonthStart: Date {
+    fileprivate static var currentMonthStart: Date {
         monthStart(for: Date())
     }
 
-    /// 指定日が属する月の 1 日 0:00。
-    private static func monthStart(for date: Date) -> Date {
+    fileprivate static func monthStart(for date: Date) -> Date {
         let calendar = Calendar.current
         let components = calendar.dateComponents([.year, .month], from: date)
         return calendar.date(from: components) ?? calendar.startOfDay(for: date)
     }
 
-    /// 「2026年6月」の日本式月ラベル。
-    private static func monthLabel(for date: Date) -> String {
+    fileprivate static func monthLabel(for date: Date) -> String {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "ja_JP")
@@ -187,8 +197,7 @@ struct DashboardView: View {
         return formatter.string(from: date)
     }
 
-    /// CSV ファイル名用の月表記（例: 2026-06）。
-    private static func fileMonthLabel(for date: Date) -> String {
+    fileprivate static func fileMonthLabel(for date: Date) -> String {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -204,22 +213,15 @@ struct DashboardView: View {
         let calendar = Calendar.current
         guard let shifted = calendar.date(byAdding: .month, value: value, to: selectedMonth) else { return }
         let next = DashboardView.monthStart(for: shifted)
-        // 未来の月へは進めない。
         selectedMonth = min(next, DashboardView.currentMonthStart)
     }
 
-    /// 選択中の月の終端（翌月 1 日 0:00）。グラフ X 軸の上限に使う。
     private var monthEnd: Date {
-        let calendar = Calendar.current
-        return calendar.date(byAdding: .month, value: 1, to: selectedMonth) ?? selectedMonth
+        Calendar.current.date(byAdding: .month, value: 1, to: selectedMonth) ?? selectedMonth
     }
 
-    /// 選択中の月の範囲（その月の 1 日 0:00 〜 翌月 1 日 0:00）。
-    private var range: ClosedRange<Date> {
-        selectedMonth...monthEnd
-    }
+    private var range: ClosedRange<Date> { selectedMonth...monthEnd }
 
-    /// プロジェクト絞り込みを適用したログ。未選択時は全件。
     private var visibleLogs: [TimeLog] {
         guard let id = selectedProjectID else { return logs }
         return logs.filter { $0.project?.id == id }
@@ -234,6 +236,10 @@ struct DashboardView: View {
 
     private var projectTotals: [ProjectTotal] {
         ReportAggregator.projectTotals(logs: visibleLogs, in: range)
+    }
+
+    private var noteTotals: [NoteTotal] {
+        ReportAggregator.noteTotals(logs: visibleLogs, in: range)
     }
 
     private var dailyDurations: [DailyDuration] {
@@ -261,18 +267,22 @@ struct DashboardView: View {
     }
 
     private func exportCSV() {
-        let result = CSVExportService.export(
-            logs: filteredLogs,
-            clipTo: range,
-            suggestedName: "timelogs-\(DashboardView.fileMonthLabel(for: selectedMonth)).csv"
-        )
+        handleExport(CSVExportService.export(
+            logs: filteredLogs, clipTo: range,
+            suggestedName: "timelogs-\(DashboardView.fileMonthLabel(for: selectedMonth)).csv"))
+    }
+
+    private func exportNoteSummaryCSV() {
+        handleExport(CSVExportService.exportNoteSummary(
+            totals: noteTotals,
+            suggestedName: "note-summary-\(DashboardView.fileMonthLabel(for: selectedMonth)).csv"))
+    }
+
+    private func handleExport(_ result: CSVExportService.ExportResult) {
         switch result {
-        case .saved(let url):
-            exportMessage = "保存しました: \(url.lastPathComponent)"
-        case .cancelled:
-            exportMessage = nil
-        case .failed(let message):
-            exportMessage = "保存に失敗: \(message)"
+        case .saved(let url): exportMessage = "保存しました: \(url.lastPathComponent)"
+        case .cancelled: exportMessage = nil
+        case .failed(let message): exportMessage = "保存に失敗: \(message)"
         }
     }
 }
