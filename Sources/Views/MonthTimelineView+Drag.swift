@@ -83,11 +83,4 @@ extension MonthTimelineView {
         return (start, end)
     }
 
-    func xForHour(_ hour: Int) -> CGFloat {
-        CGFloat(hour - rangeStartHour) * pointsPerHour
-    }
-
-    func clampedZoom(_ value: CGFloat) -> CGFloat {
-        min(Self.maxPointsPerHour, max(Self.minPointsPerHour, value))
-    }
 }

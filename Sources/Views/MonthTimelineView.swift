@@ -31,10 +31,16 @@ struct MonthTimelineView: View {
     /// 1 時間あたりの幅（pt）。横ドラッグの分解能に直結する。
     @State var pointsPerHour: CGFloat = 48
     @State private var zoomAnchor: CGFloat = 48
+    @State private var isPinching: Bool = false
     @State private var scrollWheelMonitor: Any?
 
     static let minPointsPerHour: CGFloat = 12
     static let maxPointsPerHour: CGFloat = 480
+
+    func clampedZoom(_ value: CGFloat) -> CGFloat {
+        min(Self.maxPointsPerHour, max(Self.minPointsPerHour, value))
+    }
+
     /// 日付ラベル用の左余白。
     let dayGutter: CGFloat = 96
     /// 1 レーン（1 行）の高さ。
@@ -102,18 +108,22 @@ struct MonthTimelineView: View {
             MagnifyGesture()
                 .onChanged { value in
                     guard dragLogID == nil else { return }
+                    isPinching = true
                     pointsPerHour = clampedZoom(zoomAnchor * value.magnification)
                 }
                 .onEnded { value in
                     guard dragLogID == nil else { return }
                     pointsPerHour = clampedZoom(zoomAnchor * value.magnification)
                     zoomAnchor = pointsPerHour
+                    isPinching = false
                 }
         )
         .onAppear {
+            if let old = scrollWheelMonitor { NSEvent.removeMonitor(old) }
             scrollWheelMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
                 guard event.modifierFlags.contains(.command) else { return event }
-                guard dragLogID == nil else { return event }
+                guard !isPinching, dragLogID == nil else { return event }
+                guard event.window == NSApp.keyWindow else { return event }
                 let sensitivity: CGFloat = event.hasPreciseScrollingDeltas ? 0.005 : 0.05
                 let delta = event.scrollingDeltaY * sensitivity
                 pointsPerHour = clampedZoom(pointsPerHour * (1 + delta))

@@ -24,6 +24,10 @@ extension MonthTimelineView {
         CGFloat(hourOffset(of: date, dayStart: dayStart) - Double(rangeStartHour)) * pointsPerHour
     }
 
+    func xForHour(_ hour: Int) -> CGFloat {
+        CGFloat(hour - rangeStartHour) * pointsPerHour
+    }
+
     var rangeStartHour: Int { 0 }
     var rangeEndHour: Int { 24 }
 
