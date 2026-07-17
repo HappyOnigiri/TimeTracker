@@ -19,6 +19,22 @@ struct MonthTimelineView: View {
     let onSelect: (TimeLog) -> Void
     let onAddLog: (Project, Date, Date) -> Void
 
+    init(
+        month: Date, logs: [TimeLog], projects: [Project],
+        activeSessions: [ActiveSession],
+        pointsPerHour: Binding<CGFloat>,
+        onSelect: @escaping (TimeLog) -> Void,
+        onAddLog: @escaping (Project, Date, Date) -> Void
+    ) {
+        self.month = month
+        self.logs = logs
+        self.projects = projects
+        self.activeSessions = activeSessions
+        self._pointsPerHour = pointsPerHour
+        self.onSelect = onSelect
+        self.onAddLog = onAddLog
+    }
+
     @Environment(\.modelContext) var context
     @Environment(\.colorScheme) var colorScheme
 
@@ -29,7 +45,7 @@ struct MonthTimelineView: View {
     }
 
     /// 1 時間あたりの幅（pt）。横ドラッグの分解能に直結する。
-    @State var pointsPerHour: CGFloat = 48
+    @Binding var pointsPerHour: CGFloat
     @State private var zoomAnchor: CGFloat = 48
     @State private var isPinching: Bool = false
     @State private var scrollWheelMonitor: Any?
@@ -37,8 +53,8 @@ struct MonthTimelineView: View {
     static let minPointsPerHour: CGFloat = 12
     static let maxPointsPerHour: CGFloat = 480
 
-    func clampedZoom(_ value: CGFloat) -> CGFloat {
-        min(Self.maxPointsPerHour, max(Self.minPointsPerHour, value))
+    static func clampedZoom(_ value: CGFloat) -> CGFloat {
+        min(maxPointsPerHour, max(minPointsPerHour, value))
     }
 
     /// 日付ラベル用の左余白。
@@ -109,11 +125,11 @@ struct MonthTimelineView: View {
                 .onChanged { value in
                     guard dragLogID == nil else { return }
                     isPinching = true
-                    pointsPerHour = clampedZoom(zoomAnchor * value.magnification)
+                    pointsPerHour = Self.clampedZoom(zoomAnchor * value.magnification)
                 }
                 .onEnded { value in
                     guard dragLogID == nil else { return }
-                    pointsPerHour = clampedZoom(zoomAnchor * value.magnification)
+                    pointsPerHour = Self.clampedZoom(zoomAnchor * value.magnification)
                     zoomAnchor = pointsPerHour
                     isPinching = false
                 }
@@ -126,7 +142,7 @@ struct MonthTimelineView: View {
                 guard event.window == NSApp.keyWindow else { return event }
                 let sensitivity: CGFloat = event.hasPreciseScrollingDeltas ? 0.005 : 0.05
                 let delta = event.scrollingDeltaY * sensitivity
-                pointsPerHour = clampedZoom(pointsPerHour * (1 + delta))
+                pointsPerHour = Self.clampedZoom(pointsPerHour * (1 + delta))
                 zoomAnchor = pointsPerHour
                 return nil
             }
@@ -138,6 +154,9 @@ struct MonthTimelineView: View {
             }
         }
         .onReceive(nowTimer) { now = $0 }
+        .onChange(of: pointsPerHour) { _, newValue in
+            if !isPinching { zoomAnchor = newValue }
+        }
     }
 
     // MARK: - ヘッダ（時刻目盛り）

@@ -14,6 +14,7 @@ struct RecordsView: View {
     /// プロジェクト絞り込み（nil＝すべて）。リスト・タイムライン共通。
     @State private var selectedProjectID: UUID?
     @State var editorTarget: EditorTarget?
+    @State private var timelineZoom: CGFloat = 48
 
     /// 表示モード。リスト＝月単位の一覧、タイムライン＝月単位の横軸ドラッグ編集。
     private enum ViewMode: String, CaseIterable, Identifiable {
@@ -70,6 +71,11 @@ struct RecordsView: View {
             Divider().frame(height: 18)
 
             projectFilter
+
+            if viewMode == .timeline {
+                Divider().frame(height: 18)
+                zoomControls
+            }
 
             Spacer()
 
@@ -128,6 +134,25 @@ struct RecordsView: View {
         .help("プロジェクトで絞り込む")
     }
 
+    private var zoomControls: some View {
+        HStack(spacing: 4) {
+            Button {
+                timelineZoom = MonthTimelineView.clampedZoom(timelineZoom / 1.25)
+            } label: {
+                Label("縮小", systemImage: "minus")
+            }
+            .disabled(timelineZoom <= MonthTimelineView.minPointsPerHour)
+
+            Button {
+                timelineZoom = MonthTimelineView.clampedZoom(timelineZoom * 1.25)
+            } label: {
+                Label("拡大", systemImage: "plus")
+            }
+            .disabled(timelineZoom >= MonthTimelineView.maxPointsPerHour)
+        }
+        .buttonStyle(.borderless)
+    }
+
     @ViewBuilder
     private var content: some View {
         if projects.isEmpty {
@@ -179,7 +204,8 @@ struct RecordsView: View {
     private var timelineContent: some View {
         MonthTimelineView(
             month: selectedMonth, logs: monthLogs, projects: projects,
-            activeSessions: monthActiveSessions
+            activeSessions: monthActiveSessions,
+            pointsPerHour: $timelineZoom
         ) { log in
             editorTarget = .edit(log)
         } onAddLog: { project, start, end in
