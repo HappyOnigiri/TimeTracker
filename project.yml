@@ -8,7 +8,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    MARKETING_VERSION: "1.5.0"
+    MARKETING_VERSION: "1.6.0"
     CURRENT_PROJECT_VERSION: "1"
     # ローカル/CI で Developer ID が無くても署名できるよう ad-hoc 署名を既定にする。
     # ad-hoc 署名でも App Sandbox は実機で有効化・検証できる。
