@@ -63,7 +63,7 @@ struct MonthTimelineView: View {
     let laneHeight: CGFloat = 28
     /// レーン間の余白。
     let laneGap: CGFloat = 4
-    /// 短い記録でも掴めるようにする最小ブロック幅。
+    /// 通常ブロックの視認性とヒット領域を確保する最小幅。実時刻を示す点線プレビューには適用しない。
     let minBlockWidth: CGFloat = 14
     /// 左右端のリサイズ判定に使う幅（pt）。
     let resizeEdgeWidth: CGFloat = 8
@@ -253,7 +253,7 @@ extension MonthTimelineView {
                         let snapAnchor = dayStart(of: snapped.start)
                         let snapX = xPos(snapped.start, dayStart: snapAnchor)
                         let snapEndX = xPos(snapped.end, dayStart: snapAnchor)
-                        let snapWidth = max(minBlockWidth, snapEndX - snapX)
+                        let snapWidth = Self.snapPreviewWidth(startX: snapX, endX: snapEndX)
                         snapPreview(
                             snapX: snapX, snapWidth: snapWidth,
                             snappedStart: snapped.start, snappedEnd: snapped.end

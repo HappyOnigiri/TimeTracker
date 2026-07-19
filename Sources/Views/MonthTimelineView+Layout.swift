@@ -201,6 +201,10 @@ extension MonthTimelineView {
         return fmt
     }()
 
+    static func snapPreviewWidth(startX: CGFloat, endX: CGFloat) -> CGFloat {
+        max(0, endX - startX)
+    }
+
     @ViewBuilder
     func snapPreview(
         snapX: CGFloat, snapWidth: CGFloat,
