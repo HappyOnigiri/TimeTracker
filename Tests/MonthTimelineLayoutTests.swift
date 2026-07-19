@@ -4,44 +4,82 @@ import Testing
 
 @MainActor
 struct MonthTimelineLayoutTests {
-    @Test("最低ズームで30分記録の点線幅が実時間と一致する")
-    func minimumZoomThirtyMinutes() {
-        let startX: CGFloat = 120
-        let endX: CGFloat = 126
-        let width = MonthTimelineView.snapPreviewWidth(startX: startX, endX: endX)
+    private let accuracy: CGFloat = 0.0001
 
-        #expect(width == 6)
-        #expect(startX + width == endX)
+    @Test("左方向スナップで点線の合成座標がスナップ位置と一致する")
+    func leftwardSnap() {
+        let blockX: CGFloat = 6.4
+        let startX: CGFloat = 6
+        let endX: CGFloat = 12
+        let preview = MonthTimelineView.snapPreviewGeometry(
+            blockX: blockX,
+            startX: startX,
+            endX: endX
+        )
+
+        #expect(abs(preview.localX - (-0.4)) < accuracy)
+        #expect(preview.width == 6)
+        #expect(abs(blockX + preview.localX - startX) < accuracy)
+        #expect(abs(blockX + preview.localX + preview.width - endX) < accuracy)
     }
 
-    @Test("最低ズームで60分記録の点線幅が実時間と一致する")
-    func minimumZoomSixtyMinutes() {
-        let width = MonthTimelineView.snapPreviewWidth(startX: 120, endX: 132)
+    @Test("14pt/hourの30分記録では点線幅が通常ブロックの最小幅を下回る")
+    func thirtyMinutesAtFourteenPointsPerHour() {
+        let blockX: CGFloat = 70
+        let startX: CGFloat = 70
+        let endX: CGFloat = 77
+        let preview = MonthTimelineView.snapPreviewGeometry(
+            blockX: blockX,
+            startX: startX,
+            endX: endX
+        )
 
-        #expect(width == 12)
+        #expect(preview.localX == 0)
+        #expect(preview.width == 7)
+        #expect(preview.width < 14)
     }
 
-    @Test("低ズームで短時間記録の点線右端が終了位置と一致する")
-    func lowZoomShortRecords() {
-        let startX: CGFloat = 120
+    @Test("右方向スナップで点線の合成座標がスナップ位置と一致する")
+    func rightwardSnap() {
+        let blockX: CGFloat = 5.6
+        let startX: CGFloat = 6
+        let endX: CGFloat = 12
+        let preview = MonthTimelineView.snapPreviewGeometry(
+            blockX: blockX,
+            startX: startX,
+            endX: endX
+        )
 
-        for endX: CGFloat in [128, 132] {
-            let width = MonthTimelineView.snapPreviewWidth(startX: startX, endX: endX)
-            #expect(startX + width == endX)
-        }
+        #expect(abs(preview.localX - 0.4) < accuracy)
+        #expect(abs(blockX + preview.localX - startX) < accuracy)
+        #expect(abs(blockX + preview.localX + preview.width - endX) < accuracy)
     }
 
-    @Test("最低ズームで2時間記録の点線幅が実時間と一致する")
-    func minimumZoomTwoHours() {
-        let width = MonthTimelineView.snapPreviewWidth(startX: 120, endX: 144)
+    @Test("最小幅を超える記録でも点線の合成座標がスナップ位置と一致する")
+    func recordWiderThanMinimumWidth() {
+        let blockX: CGFloat = 24.4
+        let startX: CGFloat = 24
+        let endX: CGFloat = 48
+        let preview = MonthTimelineView.snapPreviewGeometry(
+            blockX: blockX,
+            startX: startX,
+            endX: endX
+        )
 
-        #expect(width == 24)
+        #expect(preview.width == 24)
+        #expect(abs(blockX + preview.localX - startX) < accuracy)
+        #expect(abs(blockX + preview.localX + preview.width - endX) < accuracy)
     }
 
     @Test("終了位置が開始位置より前なら点線幅を0にする")
     func clampsReversedCoordinates() {
-        let width = MonthTimelineView.snapPreviewWidth(startX: 132, endX: 120)
+        let preview = MonthTimelineView.snapPreviewGeometry(
+            blockX: 132,
+            startX: 132,
+            endX: 120
+        )
 
-        #expect(width == 0)
+        #expect(preview.localX == 0)
+        #expect(preview.width == 0)
     }
 }

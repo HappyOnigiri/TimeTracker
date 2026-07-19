@@ -201,13 +201,25 @@ extension MonthTimelineView {
         return fmt
     }()
 
-    static func snapPreviewWidth(startX: CGFloat, endX: CGFloat) -> CGFloat {
-        max(0, endX - startX)
+    struct SnapPreviewGeometry {
+        let localX: CGFloat
+        let width: CGFloat
+    }
+
+    static func snapPreviewGeometry(
+        blockX: CGFloat,
+        startX: CGFloat,
+        endX: CGFloat
+    ) -> SnapPreviewGeometry {
+        SnapPreviewGeometry(
+            localX: startX - blockX,
+            width: max(0, endX - startX)
+        )
     }
 
     @ViewBuilder
     func snapPreview(
-        snapX: CGFloat, snapWidth: CGFloat,
+        localX: CGFloat, width: CGFloat,
         snappedStart: Date, snappedEnd: Date
     ) -> some View {
         let blockH = laneHeight - laneGap
@@ -215,8 +227,8 @@ extension MonthTimelineView {
         Group {
             RoundedRectangle(cornerRadius: 5)
                 .stroke(Color.accentColor.opacity(0.7), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
-                .frame(width: snapWidth, height: blockH)
-                .offset(x: snapX)
+                .frame(width: width, height: blockH)
+                .offset(x: localX)
 
             let label = "\(Self.snapTimeFmt.string(from: snappedStart))–\(Self.snapTimeFmt.string(from: snappedEnd))"
             Text(label)
@@ -226,7 +238,7 @@ extension MonthTimelineView {
                 .padding(.vertical, 1)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 3))
                 .fixedSize()
-                .offset(x: snapX, y: -blockH + 2)
+                .offset(x: localX, y: -blockH + 2)
         }
         .allowsHitTesting(false)
     }

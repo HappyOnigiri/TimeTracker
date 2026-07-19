@@ -241,10 +241,10 @@ extension MonthTimelineView {
             .frame(width: width, height: laneHeight - laneGap, alignment: .leading)
             .overlay { if !log.isRunning { cursorZones(width: width) } }
             .contentShape(Rectangle())
-            .offset(x: offsetX, y: offsetY)
 
         if log.isRunning {
             content
+                .offset(x: offsetX, y: offsetY)
         } else {
             content
                 .overlay(alignment: .topLeading) {
@@ -253,13 +253,18 @@ extension MonthTimelineView {
                         let snapAnchor = dayStart(of: snapped.start)
                         let snapX = xPos(snapped.start, dayStart: snapAnchor)
                         let snapEndX = xPos(snapped.end, dayStart: snapAnchor)
-                        let snapWidth = Self.snapPreviewWidth(startX: snapX, endX: snapEndX)
+                        let preview = Self.snapPreviewGeometry(
+                            blockX: offsetX,
+                            startX: snapX,
+                            endX: snapEndX
+                        )
                         snapPreview(
-                            snapX: snapX, snapWidth: snapWidth,
+                            localX: preview.localX, width: preview.width,
                             snappedStart: snapped.start, snappedEnd: snapped.end
                         )
                     }
                 }
+                .offset(x: offsetX, y: offsetY)
                 .contextMenu {
                     Button("削除", role: .destructive) {
                         TimeLogEditing.delete(log, in: context)
