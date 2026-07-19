@@ -1,6 +1,11 @@
 # TimeTracker アーキテクチャ
 macOS メニューバー常駐タイムトラッカー。SwiftUI, SwiftData, SwiftCharts。App Sandbox 有効。ビルド: XcodeGen。
 
+## 動作確認
+- 動作確認を目的とした TimeTracker 実アプリの起動は禁止する。ビルド成果物と `/Applications` のインストール版のどちらも起動しない。
+- GUI 自動操作、ウィンドウの前面化、フォーカスやマウスポインターを奪う操作も行わない。
+- 変更の検証には `make test` と `make ci` を使用する。
+
 ## エントリ/設定
 - [TimeTrackerApp.swift](file:///Users/un/dev/TimeTracker/Sources/TimeTrackerApp.swift): エントリ, MenuBarExtra, SwiftDataセットアップ
 - [project.yml](file:///Users/un/dev/TimeTracker/project.yml): XcodeGen設定, Sandbox権限
