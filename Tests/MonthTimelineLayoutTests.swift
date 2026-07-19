@@ -2,6 +2,7 @@ import CoreGraphics
 import Testing
 @testable import TimeTracker
 
+@MainActor
 struct MonthTimelineLayoutTests {
     @Test("最低ズームで30分記録の点線幅が実時間と一致する")
     func minimumZoomThirtyMinutes() {
