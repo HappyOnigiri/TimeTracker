@@ -201,18 +201,37 @@ extension MonthTimelineView {
         return fmt
     }()
 
+    struct SnapPreviewGeometry {
+        let localX: CGFloat
+        let width: CGFloat
+    }
+
+    static func snapPreviewGeometry(
+        blockX: CGFloat,
+        startX: CGFloat,
+        endX: CGFloat
+    ) -> SnapPreviewGeometry {
+        SnapPreviewGeometry(
+            localX: startX - blockX,
+            width: max(0, endX - startX)
+        )
+    }
+
     @ViewBuilder
     func snapPreview(
-        snapX: CGFloat, snapWidth: CGFloat,
+        localX: CGFloat, width: CGFloat,
         snappedStart: Date, snappedEnd: Date
     ) -> some View {
         let blockH = laneHeight - laneGap
 
-        Group {
+        // overlay の暗黙スタックは子同士を中央揃えで合成するため、Group のままだと
+        // ラベルより狭い点線枠が (ラベル幅 - 点線幅) / 2 だけ右へ押し出される。
+        // 明示的な topLeading の ZStack で重ねて防ぐ。
+        ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 5)
                 .stroke(Color.accentColor.opacity(0.7), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
-                .frame(width: snapWidth, height: blockH)
-                .offset(x: snapX)
+                .frame(width: width, height: blockH)
+                .offset(x: localX)
 
             let label = "\(Self.snapTimeFmt.string(from: snappedStart))–\(Self.snapTimeFmt.string(from: snappedEnd))"
             Text(label)
@@ -222,7 +241,7 @@ extension MonthTimelineView {
                 .padding(.vertical, 1)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 3))
                 .fixedSize()
-                .offset(x: snapX, y: -blockH + 2)
+                .offset(x: localX, y: -blockH + 2)
         }
         .allowsHitTesting(false)
     }
