@@ -6,6 +6,9 @@ struct MenuBarContentView: View {
     @Environment(AppNavigation.self) private var navigation
     @Environment(\.openWindow) private var openWindow
     @Query(sort: \Project.sortOrder) private var projects: [Project]
+    @State private var retroactiveStartTarget: Project?
+    @State private var retroactiveStartErrorMessage = ""
+    @State private var showingRetroactiveStartError = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -19,6 +22,14 @@ struct MenuBarContentView: View {
         }
         .padding(12)
         .frame(width: 320)
+        .sheet(item: $retroactiveStartTarget) { project in
+            RetroactiveStartView(project: project, engine: engine)
+        }
+        .alert("開始できません", isPresented: $showingRetroactiveStartError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(retroactiveStartErrorMessage)
+        }
     }
 
     private var emptyState: some View {
@@ -37,7 +48,16 @@ struct MenuBarContentView: View {
     }
 
     private func projectRow(_ project: Project) -> some View {
-        ProjectRow(project: project, engine: engine)
+        MenuBarProjectRow(
+            project: project,
+            engine: engine,
+            onStartMinutesAgo: { minutes in
+                startRetroactively(project, minutesAgo: minutes)
+            },
+            onSpecifyStartDate: {
+                retroactiveStartTarget = project
+            }
+        )
     }
 
     private var footer: some View {
@@ -67,46 +87,14 @@ struct MenuBarContentView: View {
         openWindow(id: WindowID.main)
         NSApp.activate(ignoringOtherApps: true)
     }
-}
 
-private struct ProjectRow: View {
-    let project: Project
-    let engine: TimerEngine
-    @State private var isHovered = false
-
-    var body: some View {
-        let running = engine.isRunning(project)
-        Button {
-            engine.toggle(project)
-        } label: {
-            HStack {
-                Circle()
-                    .fill(project.color)
-                    .opacity(running ? 1 : 0.4)
-                    .frame(width: 8, height: 8)
-                Text(project.name)
-                    .lineLimit(1)
-                Spacer()
-                if running, let start = engine.runningStartDate(for: project) {
-                    TimelineView(.periodic(from: start, by: 1)) { context in
-                        Text(DurationFormatter.clockString(from: context.date.timeIntervalSince(start)))
-                            .font(.callout.monospacedDigit())
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-            .padding(.vertical, 4)
-            .padding(.horizontal, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(running
-                          ? project.color.opacity(isHovered ? 0.25 : 0.15)
-                          : Color.primary.opacity(isHovered ? 0.08 : 0))
-            )
-        }
-        .buttonStyle(.plain)
-        .contentShape(Rectangle())
-        .onHover { isHovered = $0 }
+    private func startRetroactively(_ project: Project, minutesAgo: Int) {
+        let now = Date()
+        let startDate = now.addingTimeInterval(-TimeInterval(minutesAgo * 60))
+        let result = engine.startRetroactively(project, at: startDate, now: now)
+        guard result != .started else { return }
+        retroactiveStartErrorMessage = result.retroactiveStartErrorMessage ?? "タイマーを開始できませんでした。"
+        showingRetroactiveStartError = true
     }
 }
 
