@@ -224,7 +224,10 @@ extension MonthTimelineView {
     ) -> some View {
         let blockH = laneHeight - laneGap
 
-        Group {
+        // overlay の暗黙スタックは子同士を中央揃えで合成するため、Group のままだと
+        // ラベルより狭い点線枠が (ラベル幅 - 点線幅) / 2 だけ右へ押し出される。
+        // 明示的な topLeading の ZStack で重ねて防ぐ。
+        ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 5)
                 .stroke(Color.accentColor.opacity(0.7), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
                 .frame(width: width, height: blockH)
