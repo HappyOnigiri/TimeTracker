@@ -330,3 +330,38 @@ final class TimerEngine {
         try? context?.save()
     }
 }
+
+extension TimerEngine {
+    enum RetroactiveStartResult: Equatable {
+        case started
+        case futureStartDate
+        case alreadyRunning
+        case anotherProjectIsRunning
+        case engineNotConfigured
+    }
+
+    /// 指定した過去日時からプロジェクトの計測を開始する。
+    /// 通常開始と異なり、同時測定が無効な場合も既存ログを停止せず競合として拒否する。
+    @discardableResult
+    func startRetroactively(
+        _ project: Project,
+        at startDate: Date,
+        now: Date = Date()
+    ) -> RetroactiveStartResult {
+        guard startDate <= now else { return .futureStartDate }
+        guard let context else { return .engineNotConfigured }
+
+        let openLogs = fetchOpenLogs()
+        guard !openLogs.contains(where: { $0.project?.id == project.id }) else {
+            return .alreadyRunning
+        }
+        guard settings.allowConcurrentTracking || openLogs.isEmpty else {
+            return .anotherProjectIsRunning
+        }
+
+        context.insert(TimeLog(project: project, startDate: startDate))
+        save()
+        refreshRunningState()
+        return .started
+    }
+}
