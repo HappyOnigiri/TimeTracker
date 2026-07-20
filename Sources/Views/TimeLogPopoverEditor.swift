@@ -51,6 +51,9 @@ struct TimeLogPopoverEditor: View {
             .onChange(of: startDate) { _, newValue in
                 if endDate < newValue { endDate = newValue }
             }
+            .onChange(of: endDate) { _, newValue in
+                if newValue < startDate { endDate = startDate }
+            }
 
             WorkNoteInputView(
                 notes: $notes,

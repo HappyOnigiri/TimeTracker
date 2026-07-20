@@ -7,6 +7,7 @@ struct TimeInputField: View {
     @FocusState private var isFocused: Bool
     @State private var text: String = ""
     @State private var isInvalid: Bool = false
+    @State private var resetTask: Task<Void, Never>?
 
     private static let displayFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -39,14 +40,18 @@ struct TimeInputField: View {
     }
 
     private func commitText() {
+        resetTask?.cancel()
+        resetTask = nil
         if let parsed = TimeInputParser.parse(text) {
             isInvalid = false
-            date = TimeInputParser.applyToDate(parsed, referenceDate: referenceDate)
-            text = TimeInputParser.formatDisplay(parsed)
+            let newDate = TimeInputParser.applyToDate(parsed, referenceDate: referenceDate)
+            date = newDate
+            text = Self.displayFormatter.string(from: newDate)
         } else {
             isInvalid = true
-            Task {
+            resetTask = Task {
                 try? await Task.sleep(for: .milliseconds(800))
+                guard !Task.isCancelled else { return }
                 isInvalid = false
                 text = Self.displayFormatter.string(from: date)
             }

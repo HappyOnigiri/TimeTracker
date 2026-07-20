@@ -119,6 +119,33 @@ struct TimeInputParserTests {
         #expect(TimeInputParser.parse("12345") == nil)
     }
 
+    @Test("コロンのみはnil")
+    func parseColonOnly() {
+        #expect(TimeInputParser.parse(":") == nil)
+    }
+
+    @Test("hour欠落のコロン付きはnil")
+    func parseColonMissingHour() {
+        #expect(TimeInputParser.parse(":30") == nil)
+    }
+
+    @Test("minute欠落のコロン付きはnil")
+    func parseColonMissingMinute() {
+        #expect(TimeInputParser.parse("10:") == nil)
+    }
+
+    @Test("1桁minuteのコロン付きをパース")
+    func parseColonSingleDigitMinute() {
+        let result = TimeInputParser.parse("9:5")
+        #expect(result?.hour == 9)
+        #expect(result?.minute == 5)
+    }
+
+    @Test("負数のコロン付きはnil")
+    func parseColonNegativeHour() {
+        #expect(TimeInputParser.parse("-1:30") == nil)
+    }
+
     // MARK: - formatDisplay
 
     @Test("formatDisplayは H:mm 形式")

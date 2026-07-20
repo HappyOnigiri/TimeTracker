@@ -81,6 +81,9 @@ struct TimeLogEditorView: View {
                         .labelsHidden()
                     TimeInputField(date: $endDate, referenceDate: endDate)
                 }
+                .onChange(of: endDate) { _, newValue in
+                    if newValue < startDate { endDate = startDate }
+                }
             }
 
             HStack {

@@ -28,10 +28,7 @@ enum TimeInputParser {
             case 1, 2:
                 hour = number
                 minute = 0
-            case 3:
-                hour = number / 100
-                minute = number % 100
-            case 4:
+            case 3, 4:
                 hour = number / 100
                 minute = number % 100
             default:
