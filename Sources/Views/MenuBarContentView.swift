@@ -6,9 +6,7 @@ struct MenuBarContentView: View {
     @Environment(AppNavigation.self) private var navigation
     @Environment(\.openWindow) private var openWindow
     @Query(sort: \Project.sortOrder) private var projects: [Project]
-    @State private var retroactiveStartTarget: Project?
-    @State private var retroactiveStartErrorMessage = ""
-    @State private var showingRetroactiveStartError = false
+    @State private var expandedProjectID: UUID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -22,13 +20,10 @@ struct MenuBarContentView: View {
         }
         .padding(12)
         .frame(width: 320)
-        .sheet(item: $retroactiveStartTarget) { project in
-            RetroactiveStartView(project: project, engine: engine)
-        }
-        .alert("開始できません", isPresented: $showingRetroactiveStartError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(retroactiveStartErrorMessage)
+        .onChange(of: engine.runningProjectIDs) {
+            if let id = expandedProjectID, engine.runningProjectIDs.contains(id) {
+                expandedProjectID = nil
+            }
         }
     }
 
@@ -51,11 +46,24 @@ struct MenuBarContentView: View {
         MenuBarProjectRow(
             project: project,
             engine: engine,
+            isExpanded: expandedProjectID == project.id,
+            onToggleExpanded: {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    expandedProjectID = expandedProjectID == project.id ? nil : project.id
+                }
+            },
             onStartMinutesAgo: { minutes in
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    expandedProjectID = nil
+                }
                 startRetroactively(project, minutesAgo: minutes)
             },
             onSpecifyStartDate: {
-                retroactiveStartTarget = project
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    expandedProjectID = nil
+                }
+                NSApp.keyWindow?.close()
+                engine.showRetroactiveStartPanel(for: project)
             }
         )
     }
@@ -93,8 +101,15 @@ struct MenuBarContentView: View {
         let startDate = now.addingTimeInterval(-TimeInterval(minutesAgo * 60))
         let result = engine.startRetroactively(project, at: startDate, now: now)
         guard result != .started else { return }
-        retroactiveStartErrorMessage = result.retroactiveStartErrorMessage ?? "タイマーを開始できませんでした。"
-        showingRetroactiveStartError = true
+        let message = result.retroactiveStartErrorMessage ?? "タイマーを開始できませんでした。"
+        NSApp.keyWindow?.close()
+        let alert = NSAlert()
+        alert.messageText = "開始できません"
+        alert.informativeText = message
+        alert.addButton(withTitle: "OK")
+        alert.alertStyle = .warning
+        NSApp.activate()
+        alert.runModal()
     }
 }
 
