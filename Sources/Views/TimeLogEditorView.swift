@@ -62,21 +62,28 @@ struct TimeLogEditorView: View {
                 Text("開始")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                DatePicker("開始", selection: $startDate,
-                           displayedComponents: [.date, .hourAndMinute])
-                    .labelsHidden()
-                    .onChange(of: startDate) { _, newValue in
-                        if endDate < newValue { endDate = newValue }
-                    }
+                HStack {
+                    DatePicker("", selection: $startDate, displayedComponents: [.date])
+                        .labelsHidden()
+                    TimeInputField(date: $startDate, referenceDate: startDate)
+                }
+                .onChange(of: startDate) { _, newValue in
+                    if endDate < newValue { endDate = newValue }
+                }
             }
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("終了")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                DatePicker("終了", selection: $endDate, in: startDate...,
-                           displayedComponents: [.date, .hourAndMinute])
-                    .labelsHidden()
+                HStack {
+                    DatePicker("", selection: $endDate, in: startDate..., displayedComponents: [.date])
+                        .labelsHidden()
+                    TimeInputField(date: $endDate, referenceDate: endDate)
+                }
+                .onChange(of: endDate) { _, newValue in
+                    if newValue < startDate { endDate = startDate }
+                }
             }
 
             HStack {

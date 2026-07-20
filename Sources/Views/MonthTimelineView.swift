@@ -16,14 +16,14 @@ struct MonthTimelineView: View {
     let logs: [TimeLog]
     let projects: [Project]
     let activeSessions: [ActiveSession]
-    let onSelect: (TimeLog) -> Void
+    @Binding var popoverLog: TimeLog?
     let onAddLog: (Project, Date, Date) -> Void
 
     init(
         month: Date, logs: [TimeLog], projects: [Project],
         activeSessions: [ActiveSession],
         pointsPerHour: Binding<CGFloat>,
-        onSelect: @escaping (TimeLog) -> Void,
+        popoverLog: Binding<TimeLog?>,
         onAddLog: @escaping (Project, Date, Date) -> Void
     ) {
         self.month = month
@@ -31,7 +31,7 @@ struct MonthTimelineView: View {
         self.projects = projects
         self.activeSessions = activeSessions
         self._pointsPerHour = pointsPerHour
-        self.onSelect = onSelect
+        self._popoverLog = popoverLog
         self.onAddLog = onAddLog
     }
 
@@ -248,29 +248,50 @@ extension MonthTimelineView {
         } else {
             content
                 .overlay(alignment: .topLeading) {
-                    if isDragging {
-                        let snapped = snappedDragTimes()
-                        let snapAnchor = dayStart(of: snapped.start)
-                        let snapX = xPos(snapped.start, dayStart: snapAnchor)
-                        let snapEndX = xPos(snapped.end, dayStart: snapAnchor)
-                        let preview = Self.snapPreviewGeometry(
-                            blockX: offsetX,
-                            startX: snapX,
-                            endX: snapEndX
-                        )
-                        snapPreview(
-                            localX: preview.localX, width: preview.width,
-                            snappedStart: snapped.start, snappedEnd: snapped.end
-                        )
-                    }
+                    dragSnapOverlay(isDragging: isDragging, blockX: offsetX)
                 }
                 .offset(x: offsetX, y: offsetY)
+                .blockPopover(
+                    isPresented: Binding(
+                        get: { popoverLog?.id == log.id },
+                        set: { if !$0 { popoverLog = nil } }
+                    ),
+                    anchorRect: CGRect(
+                        x: offsetX, y: offsetY,
+                        width: width, height: laneHeight - laneGap
+                    ),
+                    log: log, projects: projects,
+                    onSave: { proj, newStart, newEnd, newNotes in
+                        TimeLogEditing.update(
+                            log, project: proj, start: newStart,
+                            end: newEnd, notes: newNotes, in: context
+                        )
+                    },
+                    onDelete: { TimeLogEditing.delete($0, in: context) }
+                )
                 .contextMenu {
                     Button("削除", role: .destructive) {
                         TimeLogEditing.delete(log, in: context)
                     }
                 }
                 .gesture(blockGesture(for: log, offsetX: offsetX, width: width))
+        }
+    }
+
+    @ViewBuilder
+    func dragSnapOverlay(isDragging: Bool, blockX: CGFloat) -> some View {
+        if isDragging {
+            let snapped = snappedDragTimes()
+            let snapAnchor = dayStart(of: snapped.start)
+            let snapX = xPos(snapped.start, dayStart: snapAnchor)
+            let snapEndX = xPos(snapped.end, dayStart: snapAnchor)
+            let preview = Self.snapPreviewGeometry(
+                blockX: blockX, startX: snapX, endX: snapEndX
+            )
+            snapPreview(
+                localX: preview.localX, width: preview.width,
+                snappedStart: snapped.start, snappedEnd: snapped.end
+            )
         }
     }
 
@@ -340,7 +361,7 @@ extension MonthTimelineView {
             .onEnded { _ in
                 if !dragDidMove {
                     dragLogID = nil
-                    onSelect(log)
+                    popoverLog = log
                 } else {
                     commitDrag(for: log)
                 }

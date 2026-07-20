@@ -14,6 +14,7 @@ struct RecordsView: View {
     /// プロジェクト絞り込み（nil＝すべて）。リスト・タイムライン共通。
     @State private var selectedProjectID: UUID?
     @State var editorTarget: EditorTarget?
+    @State private var popoverLog: TimeLog?
     @State private var timelineZoom: CGFloat = 48
 
     /// 表示モード。リスト＝月単位の一覧、タイムライン＝月単位の横軸ドラッグ編集。
@@ -205,12 +206,12 @@ struct RecordsView: View {
         MonthTimelineView(
             month: selectedMonth, logs: monthLogs, projects: projects,
             activeSessions: monthActiveSessions,
-            pointsPerHour: $timelineZoom
-        ) { log in
-            editorTarget = .edit(log)
-        } onAddLog: { project, start, end in
-            TimeLogEditing.add(project: project, start: start, end: end, in: context)
-        }
+            pointsPerHour: $timelineZoom,
+            popoverLog: $popoverLog,
+            onAddLog: { project, start, end in
+                TimeLogEditing.add(project: project, start: start, end: end, in: context)
+            }
+        )
     }
 
     // MARK: - グルーピング

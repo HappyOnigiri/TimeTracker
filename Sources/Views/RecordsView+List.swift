@@ -36,20 +36,24 @@ extension RecordsView {
                     .foregroundStyle(.green)
                     .clipShape(Capsule())
             } else {
-                DatePicker("", selection: Binding(
-                    get: { log.startDate },
-                    set: { log.startDate = $0; clampEnd(log); try? context.save() }
-                ), displayedComponents: [.hourAndMinute])
-                    .labelsHidden()
+                TimeInputField(
+                    date: Binding(
+                        get: { log.startDate },
+                        set: { log.startDate = $0; clampEnd(log); try? context.save() }
+                    ),
+                    referenceDate: log.startDate
+                )
 
                 Text("〜")
                     .foregroundStyle(.secondary)
 
-                DatePicker("", selection: Binding(
-                    get: { log.endDate ?? log.startDate },
-                    set: { log.endDate = max($0, log.startDate); try? context.save() }
-                ), displayedComponents: [.hourAndMinute])
-                    .labelsHidden()
+                TimeInputField(
+                    date: Binding(
+                        get: { log.endDate ?? log.startDate },
+                        set: { log.endDate = max($0, log.startDate); try? context.save() }
+                    ),
+                    referenceDate: log.endDate ?? log.startDate
+                )
 
                 Text(DurationFormatter.string(from: log.duration))
                     .font(.callout.monospacedDigit())
