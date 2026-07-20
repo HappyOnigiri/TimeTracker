@@ -58,6 +58,7 @@ struct MenuBarProjectRow: View {
                     .fixedSize()
                     .accessibilityLabel("「\(project.name)」の開始メニュー")
                     .accessibilityValue(isExpanded ? "展開中" : "")
+                    .accessibilityHint("過去の時刻から開始するオプションを表示します")
                 }
             }
             .background(

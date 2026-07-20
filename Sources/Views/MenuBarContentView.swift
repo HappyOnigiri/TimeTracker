@@ -64,11 +64,15 @@ struct MenuBarContentView: View {
                 }
             },
             onStartMinutesAgo: { minutes in
-                expandedProjectID = nil
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    expandedProjectID = nil
+                }
                 startRetroactively(project, minutesAgo: minutes)
             },
             onSpecifyStartDate: {
-                expandedProjectID = nil
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    expandedProjectID = nil
+                }
                 retroactiveStartTarget = project
             }
         )
