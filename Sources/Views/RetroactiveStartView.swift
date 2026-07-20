@@ -33,13 +33,16 @@ struct RetroactiveStartView: View {
                 Text("開始時刻")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                DatePicker(
-                    "開始時刻",
-                    selection: normalizedStartDate,
-                    in: ...Date(),
-                    displayedComponents: [.date, .hourAndMinute]
-                )
-                .labelsHidden()
+                HStack {
+                    DatePicker(
+                        "開始日",
+                        selection: normalizedStartDate,
+                        in: ...Date(),
+                        displayedComponents: [.date]
+                    )
+                    .labelsHidden()
+                    TimeInputField(date: normalizedStartDate, referenceDate: selectedStartDate)
+                }
                 Text("現在以前の日時を指定してください。")
                     .font(.caption)
                     .foregroundStyle(.secondary)

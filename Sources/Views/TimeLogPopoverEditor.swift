@@ -84,13 +84,17 @@ struct TimeLogPopoverEditor: View {
 }
 
 extension View {
+    // swiftlint:disable:next function_parameter_count
     func blockPopover(
         isPresented: Binding<Bool>,
+        anchorRect: CGRect,
         log: TimeLog, projects: [Project],
         onSave: @escaping (Project, Date, Date, [String]) -> Void,
         onDelete: @escaping (TimeLog) -> Void
     ) -> some View {
-        popover(isPresented: isPresented, arrowEdge: .bottom) {
+        popover(isPresented: isPresented,
+                attachmentAnchor: .rect(.rect(anchorRect)),
+                arrowEdge: .bottom) {
             TimeLogPopoverEditor(
                 log: log, projects: projects,
                 onSave: onSave, onDelete: onDelete

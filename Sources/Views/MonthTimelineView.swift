@@ -256,6 +256,10 @@ extension MonthTimelineView {
                         get: { popoverLog?.id == log.id },
                         set: { if !$0 { popoverLog = nil } }
                     ),
+                    anchorRect: CGRect(
+                        x: offsetX, y: offsetY,
+                        width: width, height: laneHeight - laneGap
+                    ),
                     log: log, projects: projects,
                     onSave: { proj, newStart, newEnd, newNotes in
                         TimeLogEditing.update(
