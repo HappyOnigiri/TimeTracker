@@ -14,7 +14,7 @@ struct MonthTimelineSnapPreviewRenderTests {
             month: Date(timeIntervalSinceReferenceDate: 0),
             logs: [], projects: [], activeSessions: [],
             pointsPerHour: .constant(48),
-            onSelect: { _ in }, onAddLog: { _, _, _ in }
+            popoverLog: .constant(nil), onAddLog: { _, _, _ in }
         )
         let blockH = view.laneHeight - view.laneGap
         let localX: CGFloat = 100
