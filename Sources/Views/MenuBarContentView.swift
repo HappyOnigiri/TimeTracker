@@ -6,6 +6,7 @@ struct MenuBarContentView: View {
     @Environment(AppNavigation.self) private var navigation
     @Environment(\.openWindow) private var openWindow
     @Query(sort: \Project.sortOrder) private var projects: [Project]
+    @State private var expandedProjectID: UUID?
     @State private var retroactiveStartTarget: Project?
     @State private var retroactiveStartErrorMessage = ""
     @State private var showingRetroactiveStartError = false
@@ -30,6 +31,11 @@ struct MenuBarContentView: View {
         } message: {
             Text(retroactiveStartErrorMessage)
         }
+        .onChange(of: engine.runningProjectIDs) {
+            if let id = expandedProjectID, engine.runningProjectIDs.contains(id) {
+                expandedProjectID = nil
+            }
+        }
     }
 
     private var emptyState: some View {
@@ -51,10 +57,18 @@ struct MenuBarContentView: View {
         MenuBarProjectRow(
             project: project,
             engine: engine,
+            isExpanded: expandedProjectID == project.id,
+            onToggleExpanded: {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    expandedProjectID = expandedProjectID == project.id ? nil : project.id
+                }
+            },
             onStartMinutesAgo: { minutes in
+                expandedProjectID = nil
                 startRetroactively(project, minutesAgo: minutes)
             },
             onSpecifyStartDate: {
+                expandedProjectID = nil
                 retroactiveStartTarget = project
             }
         )
