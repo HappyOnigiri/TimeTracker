@@ -3,14 +3,15 @@ import SwiftUI
 struct RetroactiveStartView: View {
     let project: Project
     let engine: TimerEngine
+    let onDismiss: () -> Void
 
-    @Environment(\.dismiss) private var dismiss
     @State private var selectedStartDate: Date
     @State private var errorMessage: String?
 
-    init(project: Project, engine: TimerEngine) {
+    init(project: Project, engine: TimerEngine, onDismiss: @escaping () -> Void) {
         self.project = project
         self.engine = engine
+        self.onDismiss = onDismiss
         let now = Date()
         _selectedStartDate = State(initialValue: Self.startOfMinute(now))
         _errorMessage = State(initialValue: nil)
@@ -52,7 +53,7 @@ struct RetroactiveStartView: View {
             Spacer().frame(height: 10)
 
             HStack {
-                Button("キャンセル") { dismiss() }
+                Button("キャンセル") { onDismiss() }
                     .keyboardShortcut(.cancelAction)
                 Spacer()
                 Button("開始", action: start)
@@ -85,7 +86,7 @@ struct RetroactiveStartView: View {
 
         let result = engine.startRetroactively(project, at: startDate, now: now)
         if result == .started {
-            dismiss()
+            onDismiss()
         } else {
             errorMessage = result.retroactiveStartErrorMessage
         }

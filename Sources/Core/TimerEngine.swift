@@ -27,6 +27,7 @@ final class TimerEngine {
 
     private(set) var pendingNoteLogs: [TimeLog] = []
     @ObservationIgnored private var workNotePanel: NSPanel?
+    @ObservationIgnored private var retroactiveStartPanel: NSPanel?
 
     @ObservationIgnored private var context: ModelContext?
     @ObservationIgnored private var settings = AppSettings()
@@ -128,7 +129,7 @@ final class TimerEngine {
         guard let panel = idleAlertPanel else { return }
         let idleSeconds = IdleDetector.secondsSinceLastInput()
         guard idleSeconds < settings.idleThresholdSeconds else { return }
-        centerPanelOnCursorScreen(panel)
+        centerPanel(panel)
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate()
     }
@@ -212,79 +213,9 @@ final class TimerEngine {
         dismissWorkNotePrompt()
     }
 
-    private func dismissWorkNotePrompt() {
+    fileprivate func dismissWorkNotePrompt() {
         workNotePanel?.close()
         workNotePanel = nil
-    }
-
-    private func showWorkNotePrompt() {
-        if let existing = workNotePanel {
-            existing.close()
-            workNotePanel = nil
-        }
-        guard let context else { return }
-
-        let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 480, height: 350),
-            styleMask: [.titled, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-        panel.title = "作業内容を記録"
-        panel.level = .floating
-        panel.isReleasedWhenClosed = false
-        panel.hidesOnDeactivate = false
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        centerPanelOnCursorScreen(panel)
-
-        let view = WorkNotePromptView(engine: self)
-            .modelContainer(context.container)
-        panel.contentView = NSHostingView(rootView: view)
-
-        workNotePanel = panel
-        panel.makeKeyAndOrderFront(nil)
-        NSApp.activate()
-    }
-
-    private func showIdleStopAlert() {
-        if let existing = idleAlertPanel {
-            existing.close()
-            idleAlertPanel = nil
-        }
-
-        let panelHeight: CGFloat = settings.promptForWorkNoteOnStop ? 420 : 280
-        let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 480, height: panelHeight),
-            styleMask: [.titled, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-        panel.title = "タイマー自動停止"
-        panel.level = .screenSaver
-        panel.isReleasedWhenClosed = false
-        panel.hidesOnDeactivate = false
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        centerPanelOnCursorScreen(panel)
-
-        guard let context else { return }
-        let alertView = IdleStopAlertView(engine: self)
-            .modelContainer(context.container)
-        panel.contentView = NSHostingView(rootView: alertView)
-
-        idleAlertPanel = panel
-        panel.makeKeyAndOrderFront(nil)
-        NSApp.activate()
-    }
-
-    private func centerPanelOnCursorScreen(_ panel: NSPanel) {
-        let screen = NSScreen.screens.first { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) }
-            ?? NSScreen.main
-        guard let screen else { return }
-        let screenFrame = screen.visibleFrame
-        let panelSize = panel.frame.size
-        let originX = screenFrame.midX - panelSize.width / 2
-        let originY = screenFrame.midY - panelSize.height / 2
-        panel.setFrameOrigin(NSPoint(x: originX, y: originY))
     }
 
     // MARK: - 内部処理
@@ -363,5 +294,94 @@ extension TimerEngine {
         save()
         refreshRunningState()
         return .started
+    }
+}
+
+// MARK: - パネル表示
+
+extension TimerEngine {
+    func showRetroactiveStartPanel(for project: Project) {
+        retroactiveStartPanel?.close()
+        let panel = makePanel(
+            size: NSSize(width: 380, height: 300), title: "開始時刻を指定"
+        )
+        let view = RetroactiveStartView(
+            project: project, engine: self,
+            onDismiss: { [weak self] in self?.dismissRetroactiveStartPanel() }
+        )
+        panel.contentView = NSHostingView(rootView: view)
+        retroactiveStartPanel = panel
+        presentPanel(panel)
+    }
+
+    func dismissRetroactiveStartPanel() {
+        retroactiveStartPanel?.close()
+        retroactiveStartPanel = nil
+    }
+
+    fileprivate func showWorkNotePrompt() {
+        workNotePanel?.close()
+        guard let context else { return }
+        let panel = makePanel(
+            size: NSSize(width: 480, height: 350), title: "作業内容を記録",
+            styleMask: [.titled, .resizable]
+        )
+        let view = WorkNotePromptView(engine: self)
+            .modelContainer(context.container)
+        panel.contentView = NSHostingView(rootView: view)
+        workNotePanel = panel
+        presentPanel(panel)
+    }
+
+    fileprivate func showIdleStopAlert() {
+        idleAlertPanel?.close()
+        guard let context else { return }
+        let panelHeight: CGFloat = settings.promptForWorkNoteOnStop ? 420 : 280
+        let panel = makePanel(
+            size: NSSize(width: 480, height: panelHeight),
+            title: "タイマー自動停止", level: .screenSaver,
+            styleMask: [.titled, .resizable]
+        )
+        let view = IdleStopAlertView(engine: self)
+            .modelContainer(context.container)
+        panel.contentView = NSHostingView(rootView: view)
+        idleAlertPanel = panel
+        presentPanel(panel)
+    }
+
+    private func makePanel(
+        size: NSSize, title: String,
+        level: NSWindow.Level = .floating,
+        styleMask: NSWindow.StyleMask = [.titled]
+    ) -> NSPanel {
+        let panel = NSPanel(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: styleMask, backing: .buffered, defer: false
+        )
+        panel.title = title
+        panel.level = level
+        panel.isReleasedWhenClosed = false
+        panel.hidesOnDeactivate = false
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        centerPanel(panel)
+        return panel
+    }
+
+    private func centerPanel(_ panel: NSPanel) {
+        let mouse = NSEvent.mouseLocation
+        let screen = NSScreen.screens.first {
+            NSMouseInRect(mouse, $0.frame, false)
+        } ?? NSScreen.main
+        guard let visibleFrame = screen?.visibleFrame else { return }
+        let panelSize = panel.frame.size
+        panel.setFrameOrigin(NSPoint(
+            x: visibleFrame.midX - panelSize.width / 2,
+            y: visibleFrame.midY - panelSize.height / 2
+        ))
+    }
+
+    private func presentPanel(_ panel: NSPanel) {
+        panel.makeKeyAndOrderFront(nil)
+        NSApp.activate()
     }
 }
