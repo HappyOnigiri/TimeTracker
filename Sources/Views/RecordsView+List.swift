@@ -73,15 +73,7 @@ extension RecordsView {
     }
 
     func rowMenu(for log: TimeLog) -> some View {
-        Menu {
-            menuItems(for: log)
-        } label: {
-            Image(systemName: "ellipsis")
-                .foregroundStyle(.secondary)
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize()
+        RowMenuButton { menuItems(for: log) }
     }
 
     @ViewBuilder
@@ -115,5 +107,31 @@ extension RecordsView {
         case .edit(let log):
             TimeLogEditing.update(log, project: project, start: start, end: end, notes: notes, in: context)
         }
+    }
+}
+
+/// 行末の「…」メニュー。ellipsis の内在サイズは 14x5pt しかなくクリックしづらいため、
+/// ラベルを 28pt 角に広げてホバー背景で操作範囲を示す。
+private struct RowMenuButton<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+    @State private var isHovered = false
+
+    var body: some View {
+        Menu {
+            content()
+        } label: {
+            Image(systemName: "ellipsis")
+                .foregroundStyle(.secondary)
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .background(
+            RoundedRectangle(cornerRadius: 4)
+                .fill(Color.primary.opacity(isHovered ? 0.08 : 0))
+        )
+        .onHover { isHovered = $0 }
     }
 }

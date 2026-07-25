@@ -9,6 +9,7 @@ struct MenuBarProjectRow: View {
     let onSpecifyStartDate: () -> Void
 
     @State private var isHovered = false
+    @State private var isMenuHovered = false
 
     var body: some View {
         let running = engine.isRunning(project)
@@ -49,13 +50,20 @@ struct MenuBarProjectRow: View {
                     Button {
                         onToggleExpanded()
                     } label: {
+                        // ellipsis の内在サイズは 14x5pt しかないため、行の高さいっぱいまで
+                        // 明示的に広げてクリック範囲を確保する（fixedSize は縦を潰すので使わない）。
                         Image(systemName: "ellipsis")
                             .foregroundStyle(.secondary)
-                            .padding(.trailing, 6)
+                            .frame(width: 28)
+                            .frame(maxHeight: .infinity)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .fixedSize()
+                    .background(
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.primary.opacity(isMenuHovered ? 0.08 : 0))
+                    )
+                    .onHover { isMenuHovered = $0 }
                     .accessibilityLabel("「\(project.name)」の開始メニュー")
                     .accessibilityValue(isExpanded ? "展開中" : "")
                     .accessibilityHint("過去の時刻から開始するオプションを表示します")
