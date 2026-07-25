@@ -33,21 +33,45 @@ struct TimeInputField: View {
                 guard !isFocused else { return }
                 text = Self.displayFormatter.string(from: newValue)
             }
+            .onChange(of: text) { _, newValue in
+                applyEdit(newValue)
+            }
             .onChange(of: isFocused) { _, focused in
                 if !focused { commitText() }
             }
             .onSubmit { commitText() }
     }
 
-    private func commitText() {
-        resetTask?.cancel()
-        resetTask = nil
-        if let parsed = TimeInputParser.parse(text) {
+    /// 入力の 1 文字ごとに Date へ反映する。
+    /// フォーカスが残ったまま確定ボタン（保存/開始）を押しても編集内容が失われないようにするため。
+    ///
+    /// date の同期による text 更新でも呼ばれるが、その場合は分単位で同値になり `unchanged` として無視される。
+    private func applyEdit(_ input: String) {
+        switch TimeInputCommit.evaluate(text: input, current: date, referenceDate: referenceDate) {
+        case .updated(let newDate):
+            cancelInvalidReset()
             isInvalid = false
-            let newDate = TimeInputParser.applyToDate(parsed, referenceDate: referenceDate)
+            date = newDate
+        case .unchanged:
+            cancelInvalidReset()
+            isInvalid = false
+        case .invalid:
+            // 入力途中なのでエラー表示はせず、確定時に判定する。
+            break
+        }
+    }
+
+    private func commitText() {
+        cancelInvalidReset()
+        switch TimeInputCommit.evaluate(text: text, current: date, referenceDate: referenceDate) {
+        case .updated(let newDate):
+            isInvalid = false
             date = newDate
             text = Self.displayFormatter.string(from: newDate)
-        } else {
+        case .unchanged:
+            isInvalid = false
+            text = Self.displayFormatter.string(from: date)
+        case .invalid:
             isInvalid = true
             resetTask = Task {
                 try? await Task.sleep(for: .milliseconds(800))
@@ -56,5 +80,10 @@ struct TimeInputField: View {
                 text = Self.displayFormatter.string(from: date)
             }
         }
+    }
+
+    private func cancelInvalidReset() {
+        resetTask?.cancel()
+        resetTask = nil
     }
 }
