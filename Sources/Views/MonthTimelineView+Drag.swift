@@ -3,11 +3,24 @@ import SwiftUI
 // MARK: - ドラッグ操作
 
 extension MonthTimelineView {
-    func modeForStart(startX: CGFloat, width: CGFloat) -> DragMode {
-        guard width >= resizeEdgeMin else { return .move }
-        if startX <= resizeEdgeWidth { return .resizeStart }
-        if startX >= width - resizeEdgeWidth { return .resizeEnd }
+    /// ブロック幅に応じた左右端の判定幅。
+    /// 端の幅を固定にすると、狭いブロックでは左右の端が重なって判定が破綻するため、
+    /// `edgeWidth * 3` 未満の幅では「開始端・中央・終了端」の 3 等分に縮める。
+    static func resizeEdgeInset(blockWidth: CGFloat, edgeWidth: CGFloat) -> CGFloat {
+        min(edgeWidth, max(0, blockWidth) / 3)
+    }
+
+    /// 押下位置（ブロック左端からの X）から移動／リサイズを決める。
+    static func dragMode(startX: CGFloat, blockWidth: CGFloat, edgeWidth: CGFloat) -> DragMode {
+        let edge = resizeEdgeInset(blockWidth: blockWidth, edgeWidth: edgeWidth)
+        guard edge > 0 else { return .move }
+        if startX <= edge { return .resizeStart }
+        if startX >= blockWidth - edge { return .resizeEnd }
         return .move
+    }
+
+    func modeForStart(startX: CGFloat, width: CGFloat) -> DragMode {
+        Self.dragMode(startX: startX, blockWidth: width, edgeWidth: resizeEdgeWidth)
     }
 
     func applyDrag(translationWidth: CGFloat, dayDelta: Int) {

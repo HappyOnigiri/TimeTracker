@@ -7,7 +7,8 @@ import SwiftUI
 /// 横軸は稼働の有無に関わらず 0〜24 時で固定、行は当月の全日を表示する。
 /// 同じ日に時間が重なる記録は複数レーン（行）に分けて表示する。
 /// - ブロック中央の横ドラッグ: 開始・終了を一緒に移動。
-/// - ブロック左右端（端 8pt）の横ドラッグ: 開始/終了のみリサイズ。
+/// - ブロック左右端の横ドラッグ: 開始/終了のみリサイズ。端の判定幅は最大 8pt で、
+///   狭いブロックでは「開始端・中央・終了端」の 3 等分まで縮めて必ずリサイズできるようにする。
 /// - タップ（移動量ほぼゼロ）: 編集シートを開く。
 /// - 計測中（`endDate == nil`）のログは読み取り専用（移動・リサイズ・タップすべて無効）。
 struct MonthTimelineView: View {
@@ -64,11 +65,10 @@ struct MonthTimelineView: View {
     /// レーン間の余白。
     let laneGap: CGFloat = 4
     /// 通常ブロックの視認性とヒット領域を確保する最小幅。実時刻を示す点線プレビューには適用しない。
-    let minBlockWidth: CGFloat = 14
-    /// 左右端のリサイズ判定に使う幅（pt）。
+    /// 3 等分しても開始端・中央・終了端それぞれに 6pt 残る幅にしている。
+    let minBlockWidth: CGFloat = 18
+    /// 左右端のリサイズ判定に使う幅（pt）の上限。狭いブロックではブロック幅の 1/3 まで縮む。
     let resizeEdgeWidth: CGFloat = 8
-    /// リサイズ判定を有効にする最小ブロック幅（これ未満は移動のみ）。
-    let resizeEdgeMin: CGFloat = 28
     /// タップ（編集）とみなす最大移動量（pt）。
     let tapSlop: CGFloat = 4
     /// 確定時のスナップ単位（分）。
@@ -370,11 +370,12 @@ extension MonthTimelineView {
 
     @ViewBuilder
     func cursorZones(width: CGFloat) -> some View {
-        if width >= resizeEdgeMin {
+        let edge = Self.resizeEdgeInset(blockWidth: width, edgeWidth: resizeEdgeWidth)
+        if edge > 0 {
             HStack(spacing: 0) {
-                Color.clear.frame(width: resizeEdgeWidth).pointerCursor(.resizeLeftRight)
+                Color.clear.frame(width: edge).pointerCursor(.resizeLeftRight)
                 Color.clear.pointerCursor(.pointingHand)
-                Color.clear.frame(width: resizeEdgeWidth).pointerCursor(.resizeLeftRight)
+                Color.clear.frame(width: edge).pointerCursor(.resizeLeftRight)
             }
         } else {
             Color.clear.pointerCursor(.pointingHand)
