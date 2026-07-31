@@ -55,6 +55,43 @@ struct WorkNoteSuggestionsTests {
         #expect(result.isEmpty)
     }
 
+    @Test("limit を指定すると最終使用日の新しい順に切り捨てられる")
+    func truncatesToLimit() {
+        let project = Project(name: "A")
+        let logs = (1...5).map { day in
+            TimeLog(project: project,
+                    startDate: TestSupport.date(2025, 1, day, 9, 0),
+                    endDate: TestSupport.date(2025, 1, day, 10, 0),
+                    notes: ["作業\(day)"])
+        }
+        let result = WorkNoteSuggestions.candidates(from: logs, limit: 2)
+        #expect(result == ["作業5", "作業4"])
+    }
+
+    @Test("limit に .max を渡すと既定の 20 件を超えても全件返る")
+    func returnsAllCandidatesWithMaxLimit() {
+        let project = Project(name: "A")
+        let logs = (1...25).map { index in
+            TimeLog(project: project,
+                    startDate: TestSupport.date(2025, 1, 1, 9, index),
+                    endDate: TestSupport.date(2025, 1, 1, 10, index),
+                    notes: ["作業\(index)"])
+        }
+        #expect(WorkNoteSuggestions.candidates(from: logs).count == 20)
+        #expect(WorkNoteSuggestions.candidates(from: logs, limit: .max).count == 25)
+    }
+
+    @Test("最終使用日が同じ候補は文言の昇順で安定して並ぶ")
+    func sortsTiesByNameAscending() {
+        let project = Project(name: "A")
+        let log = TimeLog(project: project,
+                          startDate: TestSupport.date(2025, 1, 10, 9, 0),
+                          endDate: TestSupport.date(2025, 1, 10, 10, 0),
+                          notes: ["ccc", "aaa", "bbb"])
+        let result = WorkNoteSuggestions.candidates(from: [log])
+        #expect(result == ["aaa", "bbb", "ccc"])
+    }
+
     @Test("endDate が nil のログは startDate を参照日として使う")
     func usesStartDateWhenEndDateIsNil() {
         let project = Project(name: "A")
