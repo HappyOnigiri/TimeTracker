@@ -3,6 +3,9 @@ import SwiftData
 import Testing
 @testable import TimeTracker
 
+// TestSupport.makeContext() は共有 Container を使い回すため、直列実行が前提。
+@Suite(.serialized)
+@MainActor
 struct WorkNoteRenamingTests {
     // MARK: - renamed（純粋関数）
 
@@ -56,10 +59,24 @@ struct WorkNoteRenamingTests {
         #expect(result == ["調査", "基本設計", "実装"])
     }
 
+    @Test("前後の空白だけが違う重複も 1 つにまとめられる")
+    func mergesDuplicatesIgnoringSurroundingWhitespace() {
+        let result = WorkNoteRenaming.renamed(notes: [" 実装 ", "設計"], from: "設計", to: "実装")
+        #expect(result == [" 実装 "])
+    }
+
+    // MARK: - matches
+
+    @Test("matches は完全一致するタグだけを検出する")
+    func matchesExactTagOnly() {
+        #expect(WorkNoteRenaming.matches(notes: [" 設計 ", "実装"], tag: "設計"))
+        #expect(!WorkNoteRenaming.matches(notes: ["基本設計"], tag: "設計"))
+        #expect(!WorkNoteRenaming.matches(notes: ["設計"], tag: "   "))
+    }
+
     // MARK: - rename（ModelContext を伴う）
 
     @Test("複数プロジェクトにまたがるタグがすべて置換され、変更件数が返る")
-    @MainActor
     func renamesAcrossProjects() throws {
         let context = try TestSupport.makeContext()
         let projectA = Project(name: "A")
@@ -80,7 +97,6 @@ struct WorkNoteRenamingTests {
     }
 
     @Test("対象タグが存在しない場合は 0 を返し、どのログも変更されない")
-    @MainActor
     func returnsZeroWhenNoTarget() throws {
         let context = try TestSupport.makeContext()
         let project = Project(name: "A")
@@ -95,7 +111,6 @@ struct WorkNoteRenamingTests {
     }
 
     @Test("計測中（endDate が nil）のログも置換対象になる")
-    @MainActor
     func renamesRunningLog() throws {
         let context = try TestSupport.makeContext()
         let project = Project(name: "A")
@@ -113,7 +128,6 @@ struct WorkNoteRenamingTests {
         #expect(log.notes == ["基本設計"])
     }
 
-    @MainActor
     private func makeLog(project: Project, day: Int, notes: [String], in context: ModelContext) -> TimeLog {
         let log = TimeLog(project: project,
                           startDate: TestSupport.date(2025, 1, day, 9, 0),
