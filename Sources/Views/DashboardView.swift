@@ -8,10 +8,14 @@ struct DashboardView: View {
     @Query(sort: \Project.sortOrder) private var projects: [Project]
 
     /// 表示対象の月（その月の 1 日 0:00）。
-    @State private var selectedMonth: Date = DashboardView.currentMonthStart
+    @State private var selectedMonth: Date
     /// 絞り込み対象のプロジェクト ID。nil のときはすべて表示。
     @State private var selectedProjectID: UUID?
     @State private var exportMessage: String?
+
+    init(selectedMonth: Date = ScreenshotSampleData.initialMonth(fallback: DashboardView.currentMonthStart)) {
+        _selectedMonth = State(initialValue: selectedMonth)
+    }
 
     var body: some View {
         ScrollView {

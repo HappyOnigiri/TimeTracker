@@ -11,7 +11,7 @@ enum TestSupport {
     private static let sharedContainer: ModelContainer = {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         // swiftlint:disable:next force_try
-        return try! ModelContainer(for: Project.self, TimeLog.self, configurations: config)
+        return try! ModelContainer(for: Project.self, TimeLog.self, ActiveSession.self, configurations: config)
     }()
 
     /// 既存データを消去した、クリーンなインメモリ ModelContext を返す。
@@ -21,6 +21,9 @@ enum TestSupport {
         // バッチ削除は関係制約に抵触するため、個別に削除する。
         for log in (try? context.fetch(FetchDescriptor<TimeLog>())) ?? [] {
             context.delete(log)
+        }
+        for session in (try? context.fetch(FetchDescriptor<ActiveSession>())) ?? [] {
+            context.delete(session)
         }
         for project in (try? context.fetch(FetchDescriptor<Project>())) ?? [] {
             context.delete(project)

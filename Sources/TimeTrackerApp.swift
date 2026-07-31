@@ -1,10 +1,6 @@
 import SwiftData
 import SwiftUI
 
-enum WindowID {
-    static let main = "main"
-}
-
 /// メニューバー常駐のタイムトラッキングアプリのエントリポイント。
 @main
 struct TimeTrackerApp: App {
@@ -22,6 +18,9 @@ struct TimeTrackerApp: App {
 
         do {
             container = try ModelContainer(for: Project.self, TimeLog.self, ActiveSession.self)
+#if SCREENSHOT_BUILD
+            try ScreenshotSampleData.replaceAll(in: container.mainContext)
+#endif
         } catch {
             fatalError("ModelContainer の生成に失敗しました: \(error)")
         }

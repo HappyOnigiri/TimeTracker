@@ -9,12 +9,16 @@ struct RecordsView: View {
     @Query(sort: \ActiveSession.startDate) private var activeSessions: [ActiveSession]
 
     /// 表示対象の月（その月の 1 日 0:00）。リスト・タイムライン共通。
-    @State private var selectedMonth: Date = RecordsView.currentMonthStart
+    @State private var selectedMonth: Date
     @State private var viewMode: ViewMode = .timeline
     /// プロジェクト絞り込み（nil＝すべて）。リスト・タイムライン共通。
     @State private var selectedProjectID: UUID?
     @State var editorTarget: EditorTarget?
     @State private var popoverLog: TimeLog?
+
+    init(selectedMonth: Date = ScreenshotSampleData.initialMonth(fallback: RecordsView.currentMonthStart)) {
+        _selectedMonth = State(initialValue: selectedMonth)
+    }
     @State private var timelineZoom: CGFloat = 48
     @State private var showingNoteRename = false
 

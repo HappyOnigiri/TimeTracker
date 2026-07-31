@@ -3,6 +3,8 @@ TimeTracker.xcodeproj/
 
 # Xcode / ビルド成果物
 build/
+build-sample/
+build-screenshots/
 DerivedData/
 *.xcuserstate
 xcuserdata/
