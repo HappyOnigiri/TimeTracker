@@ -19,6 +19,16 @@ struct DailyDuration: Identifiable {
     var id: String { "\(projectID.uuidString)-\(day.timeIntervalSince1970)" }
 }
 
+/// 1 日の稼働時間と、その日に稼働のあった作業内容。
+struct DailyWorkSummary: Identifiable {
+    /// その日の 0:00（集計に用いたカレンダー基準）。
+    let day: Date
+    let seconds: TimeInterval
+    /// 出現順（ログの開始時刻昇順）に重複を除いた作業内容。
+    let notes: [String]
+    var id: Date { day }
+}
+
 /// 作業内容ごとの合計稼働時間。
 struct NoteTotal: Identifiable {
     let note: String
@@ -120,7 +130,61 @@ enum ReportAggregator {
             .sorted { $0.seconds > $1.seconds }
     }
 
+    /// 1 日ごとの稼働秒数と作業内容を、日付昇順で返す。
+    ///
+    /// プロジェクトの区別はせず、その日の稼働を合算する。日付をまたぐログは
+    /// 日付境界で分割し、作業内容はまたいだ双方の日に記録する。
+    ///
+    /// 稼働のない日も 0 秒・作業内容なしの要素として含めるため、返り値は `range` に含まれる
+    /// すべての日を隙間なく網羅する（`range` の上限が属する日は、上限がその日の 0:00 のとき
+    /// 稼働しうる時間が無いため除く）。
+    static func dailyWorkSummaries(
+        logs: [TimeLog],
+        in range: ClosedRange<Date>,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> [DailyWorkSummary] {
+        var seconds: [Date: TimeInterval] = [:]
+        var notes: [Date: [String]] = [:]
+        var seenNotes: [Date: Set<String>] = [:]
+
+        for log in logs.sorted(by: { $0.startDate < $1.startDate }) {
+            let segments = dailySegments(for: log, in: range, now: now, calendar: calendar)
+            guard !segments.isEmpty else { continue }
+            let logNotes = log.notes
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+
+            for segment in segments {
+                seconds[segment.day, default: 0] += segment.seconds
+                var seen = seenNotes[segment.day] ?? []
+                for note in logNotes where seen.insert(note).inserted {
+                    notes[segment.day, default: []].append(note)
+                }
+                seenNotes[segment.day] = seen
+            }
+        }
+
+        return allDays(in: range, calendar: calendar).map { day in
+            DailyWorkSummary(day: day, seconds: seconds[day] ?? 0, notes: notes[day] ?? [])
+        }
+    }
+
     // MARK: - 内部
+
+    /// 期間に含まれるすべての日の 0:00 を昇順で返す。
+    ///
+    /// 上限が 0:00 ちょうどの日は、その日に稼働しうる時間が無いため含めない。
+    private static func allDays(in range: ClosedRange<Date>, calendar: Calendar) -> [Date] {
+        var days: [Date] = []
+        var cursor = calendar.startOfDay(for: range.lowerBound)
+        while cursor < range.upperBound {
+            days.append(cursor)
+            guard let next = calendar.date(byAdding: .day, value: 1, to: cursor) else { break }
+            cursor = next
+        }
+        return days
+    }
 
     /// 期間でクリップした合計秒数。
     private static func clippedDuration(for log: TimeLog, in range: ClosedRange<Date>, now: Date) -> TimeInterval {

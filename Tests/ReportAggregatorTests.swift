@@ -114,4 +114,96 @@ struct ReportAggregatorTests {
         let totals = ReportAggregator.noteTotals(logs: [log], in: narrowRange, calendar: TestSupport.utcCalendar)
         #expect(totals[0].seconds == 3600)
     }
+
+    // MARK: - dailyWorkSummaries
+
+    @Test("日付別集計は同じ日のログを合算し、作業内容を出現順に集める")
+    func dailyWorkSummariesSumsAndCollectsNotes() {
+        let project = Project(name: "A")
+        let log1 = TimeLog(project: project,
+                           startDate: TestSupport.date(2025, 1, 10, 9, 0),
+                           endDate: TestSupport.date(2025, 1, 10, 10, 0),
+                           notes: ["設計"])
+        let log2 = TimeLog(project: project,
+                           startDate: TestSupport.date(2025, 1, 10, 13, 0),
+                           endDate: TestSupport.date(2025, 1, 10, 14, 30),
+                           notes: ["実装", "設計"])
+        let summaries = ReportAggregator.dailyWorkSummaries(
+            logs: [log2, log1],
+            in: TestSupport.date(2025, 1, 10)...TestSupport.date(2025, 1, 11),
+            calendar: TestSupport.utcCalendar)
+        #expect(summaries.count == 1)
+        #expect(summaries[0].day == TestSupport.date(2025, 1, 10))
+        #expect(summaries[0].seconds == 9000) // 1h + 1.5h
+        #expect(summaries[0].notes == ["設計", "実装"]) // 開始時刻順・重複除去
+    }
+
+    @Test("日付別集計は日跨ぎログを日付境界で分割し、双方の日に作業内容を残す")
+    func dailyWorkSummariesSplitsAtMidnight() {
+        let project = Project(name: "A")
+        let log = TimeLog(project: project,
+                          startDate: TestSupport.date(2025, 1, 11, 23, 30),
+                          endDate: TestSupport.date(2025, 1, 12, 0, 30),
+                          notes: ["夜間対応"])
+        let summaries = ReportAggregator.dailyWorkSummaries(
+            logs: [log],
+            in: TestSupport.date(2025, 1, 11)...TestSupport.date(2025, 1, 13),
+            calendar: TestSupport.utcCalendar)
+        #expect(summaries.count == 2)
+        #expect(summaries[0].day == TestSupport.date(2025, 1, 11))
+        #expect(summaries[0].seconds == 1800)
+        #expect(summaries[0].notes == ["夜間対応"])
+        #expect(summaries[1].day == TestSupport.date(2025, 1, 12))
+        #expect(summaries[1].seconds == 1800)
+        #expect(summaries[1].notes == ["夜間対応"])
+    }
+
+    @Test("日付別集計は空の作業内容を除き、プロジェクト未設定のログも含める")
+    func dailyWorkSummariesIgnoresEmptyNotesAndKeepsOrphanLogs() {
+        let log = TimeLog(project: nil,
+                          startDate: TestSupport.date(2025, 1, 10, 9, 0),
+                          endDate: TestSupport.date(2025, 1, 10, 10, 0),
+                          notes: ["  ", ""])
+        let summaries = ReportAggregator.dailyWorkSummaries(
+            logs: [log],
+            in: TestSupport.date(2025, 1, 10)...TestSupport.date(2025, 1, 11),
+            calendar: TestSupport.utcCalendar)
+        #expect(summaries.count == 1)
+        #expect(summaries[0].seconds == 3600)
+        #expect(summaries[0].notes.isEmpty)
+    }
+
+    @Test("日付別集計は JST カレンダーで日付境界を判定する")
+    func dailyWorkSummariesUsesJSTBoundary() {
+        let project = Project(name: "A")
+        // UTC 1/9 16:00〜17:00 は JST では 1/10 01:00〜02:00。
+        let log = TimeLog(project: project,
+                          startDate: TestSupport.date(2025, 1, 9, 16, 0),
+                          endDate: TestSupport.date(2025, 1, 9, 17, 0))
+        let jstDay = Calendar.jst.startOfDay(for: TestSupport.date(2025, 1, 9, 16, 0))
+        let nextJSTDay = Calendar.jst.date(byAdding: .day, value: 1, to: jstDay)!
+        let summaries = ReportAggregator.dailyWorkSummaries(
+            logs: [log], in: jstDay...nextJSTDay, calendar: .jst)
+        #expect(summaries.count == 1)
+        #expect(summaries[0].day == jstDay)
+        #expect(summaries[0].seconds == 3600)
+    }
+
+    @Test("日付別集計は稼働のない日も 0 秒で含め、期間の全日を網羅する")
+    func dailyWorkSummariesIncludesEmptyDays() {
+        let project = Project(name: "A")
+        let log = TimeLog(project: project,
+                          startDate: TestSupport.date(2025, 1, 10, 9, 0),
+                          endDate: TestSupport.date(2025, 1, 10, 10, 0))
+        // range は 1/1 0:00〜2/1 0:00。2/1 は 0:00 ちょうどなので含めず 31 日。
+        let summaries = ReportAggregator.dailyWorkSummaries(
+            logs: [log], in: range, calendar: TestSupport.utcCalendar)
+        #expect(summaries.count == 31)
+        #expect(summaries.first?.day == TestSupport.date(2025, 1, 1))
+        #expect(summaries.last?.day == TestSupport.date(2025, 1, 31))
+        #expect(summaries.first?.seconds == 0)
+        #expect(summaries.first?.notes.isEmpty == true)
+        let tenth = summaries.first { $0.day == TestSupport.date(2025, 1, 10) }
+        #expect(tenth?.seconds == 3600)
+    }
 }
