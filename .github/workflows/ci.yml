@@ -3,6 +3,10 @@ name: CI
 on:
   pull_request:
 
+env:
+  # macos-15 のインストール一覧から削除された場合は、意図的に CI を失敗させて更新する。
+  XCODE_VERSION: "26.3"
+
 # 同一 PR への連続 push では古い実行をキャンセルし、高価な macOS ランナーを節約する。
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -15,7 +19,17 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Select Xcode
-        run: sudo xcode-select -switch /Applications/Xcode_26.app || true
+        run: |
+          xcode_path="/Applications/Xcode_${XCODE_VERSION}.app"
+          if [[ ! -d "$xcode_path" ]]; then
+            echo "::error::Xcode ${XCODE_VERSION} is not installed at ${xcode_path}"
+            exit 1
+          fi
+
+          sudo xcode-select --switch "$xcode_path"
+          xcode-select --print-path
+          xcodebuild -version
+          swift --version
 
       - name: Install tools
         run: brew install xcodegen swiftlint
