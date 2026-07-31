@@ -2,14 +2,14 @@
 
 macOS のメニューバーから、プロジェクトごとの作業時間を記録するタイムトラッカーです。
 
-- macOS 14 以降
-- ローカル保存
-
 ## 画面
 
 <img src="Documentation/Images/dashboard.png" alt="月ごとの作業時間を表示したダッシュボード" width="720">
 
 <img src="Documentation/Images/menu-bar.png" alt="プロジェクトを選んで計測を始めるメニューバー画面" width="320">
+
+- macOS 14 以降
+- ローカル保存
 
 ## 主な機能
 
