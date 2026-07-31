@@ -50,6 +50,7 @@ struct DashboardView: View {
             Menu {
                 Button("時間別 CSV") { exportCSV() }
                 Button("作業内容別 CSV") { exportNoteSummaryCSV() }
+                Button("日付別 CSV") { exportDailyWorkCSV() }
             } label: {
                 Label("CSV 出力", systemImage: "square.and.arrow.up")
             }
@@ -284,5 +285,36 @@ struct DashboardView: View {
         case .cancelled: exportMessage = nil
         case .failed(let message): exportMessage = "保存に失敗: \(message)"
         }
+    }
+}
+
+extension DashboardView {
+    /// 日付別の稼働時間 CSV。日付境界は実行環境のタイムゾーンに依らず JST で固定する。
+    private func exportDailyWorkCSV() {
+        let calendar = Calendar.jst
+        let summaries = ReportAggregator.dailyWorkSummaries(
+            logs: visibleLogs,
+            in: DashboardView.dailyWorkRange(for: selectedMonth),
+            calendar: calendar)
+        handleExport(CSVExportService.exportDailyWork(
+            summaries: summaries,
+            calendar: calendar,
+            suggestedName: "daily-work-\(DashboardView.fileMonthLabel(for: selectedMonth)).csv"))
+    }
+
+    /// 選択月を JST の月初・翌月初として再構成する。
+    ///
+    /// `selectedMonth` は画面表示用にローカル時刻で保持しているため、絶対時刻のまま
+    /// JST 集計へ渡すと海外タイムゾーンで月の端がずれる。年・月だけを使って JST の
+    /// 範囲を作り直す。
+    static func dailyWorkRange(
+        for selectedMonth: Date,
+        selectedMonthCalendar: Calendar = .current
+    ) -> ClosedRange<Date> {
+        let components = selectedMonthCalendar.dateComponents([.year, .month], from: selectedMonth)
+        let calendar = Calendar.jst
+        let monthStart = calendar.date(from: components) ?? calendar.startOfDay(for: selectedMonth)
+        let nextMonthStart = calendar.date(byAdding: .month, value: 1, to: monthStart) ?? monthStart
+        return monthStart...nextMonthStart
     }
 }
