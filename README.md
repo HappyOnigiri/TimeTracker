@@ -6,7 +6,7 @@ macOS のメニューバーから、プロジェクトごとの作業時間を�
 
 <img src="Documentation/Images/dashboard.png" alt="月ごとの作業時間を表示したダッシュボード" width="720">
 
-<img src="Documentation/Images/menu-bar.png" alt="プロジェクトを選んで計測を始めるメニューバー画面" width="320">
+<img src="Documentation/Images/menu-bar.png" alt="プロジェクトを選んで計測を始めるメニューバー画面" width="640">
 
 - macOS 14 以降
 - ローカル保存

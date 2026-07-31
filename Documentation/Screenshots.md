@@ -8,13 +8,14 @@ make sample-install
 
 インストール先は `/Applications/TimeTracker Sample.app` です。通常版の `TimeTracker.app` は変更しません。
 
-README 用の PNG は、アプリやウィンドウを開かずに生成できます。
+README 用のダッシュボード画像は、アプリやウィンドウを開かずに生成できます。
 
 ```sh
 make screenshots
 ```
 
-生成先は次の2ファイルです。
+生成先は次のファイルです。
 
 - `Documentation/Images/dashboard.png`
-- `Documentation/Images/menu-bar.png`
+
+`Documentation/Images/menu-bar.png` は、macOS のメニューバーを含めて手動で撮影した画像です。`make screenshots` では変更されません。

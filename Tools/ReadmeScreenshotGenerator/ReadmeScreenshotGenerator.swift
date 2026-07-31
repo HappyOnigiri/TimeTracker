@@ -36,21 +36,6 @@ struct ReadmeScreenshotGenerator {
             size: CGSize(width: 1_200, height: 800),
             to: outputDirectory.appendingPathComponent("dashboard.png")
         )
-
-        let engine = TimerEngine()
-        engine.configure(context: container.mainContext)
-        let navigation = AppNavigation()
-        try render(
-            MenuBarContentView()
-                .environment(engine)
-                .environment(navigation)
-                .modelContainer(container)
-                .environment(\.colorScheme, .light)
-                .background(Color(nsColor: .windowBackgroundColor))
-                .frame(width: 320, height: 300, alignment: .top),
-            size: CGSize(width: 320, height: 300),
-            to: outputDirectory.appendingPathComponent("menu-bar.png")
-        )
     }
 
     private static func render<Content: View>(
