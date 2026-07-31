@@ -307,7 +307,9 @@ extension DashboardView {
     /// `selectedMonth` は画面表示用にローカル時刻で保持しているため、絶対時刻のまま
     /// JST 集計へ渡すと海外タイムゾーンで月の端がずれる。年・月だけを使って JST の
     /// 範囲を作り直す。
-    static func dailyWorkRange(
+    /// Xcode 16 系では `View` 準拠から型全体が MainActor 分離と推論され、テストなど
+    /// nonisolated な文脈から呼べなくなる。日付計算だけなので nonisolated を明示する。
+    nonisolated static func dailyWorkRange(
         for selectedMonth: Date,
         selectedMonthCalendar: Calendar = .current
     ) -> ClosedRange<Date> {
