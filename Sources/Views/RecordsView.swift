@@ -58,9 +58,12 @@ struct RecordsView: View {
         }
     }
 
-    /// 一括変更の対象になりうる作業内容（全期間・絞り込みなし）。
-    private var noteCandidates: [String] {
-        WorkNoteSuggestions.candidates(from: logs, limit: .max)
+    /// 一括変更の対象になりうる作業内容が 1 つでもあるか（全期間・絞り込みなし）。
+    /// 候補一覧そのものはシート側で組むため、ここでは短絡評価だけに留める。
+    private var hasNoteCandidates: Bool {
+        logs.contains { log in
+            log.notes.contains { !WorkNoteRenaming.key($0).isEmpty }
+        }
     }
 
     // MARK: - 操作部
@@ -106,8 +109,8 @@ struct RecordsView: View {
             }
             // 操作部は横に詰まっているため、アイコンのみにして help で補う。
             .labelStyle(.iconOnly)
-            .disabled(noteCandidates.isEmpty)
-            .help(noteCandidates.isEmpty ? "変更できる作業内容がありません" : "作業内容の文言を一括変更")
+            .disabled(!hasNoteCandidates)
+            .help(hasNoteCandidates ? "作業内容の文言を一括変更" : "変更できる作業内容がありません")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -284,7 +287,6 @@ struct RecordsView: View {
     private var monthEnd: Date {
         Calendar.current.date(byAdding: .month, value: 1, to: selectedMonth) ?? selectedMonth
     }
-
 }
 
 /// 日付ごとにまとめた記録グループ。
