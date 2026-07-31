@@ -4,8 +4,7 @@ TimeTracker は、macOS のメニューバーからプロジェクトごとの�
 
 - 対応 OS: macOS 14 以降
 - UI: 日本語
-- 現在のバージョン: 1.9.0
-- データ保存: SwiftData / UserDefaults（ローカルのみ）
+- ローカル保存
 
 ## 主な機能
 
@@ -84,7 +83,7 @@ TimeTracker のアプリ本体に外部サービス連携はなく、プロジ�
 ## 必要環境
 
 - macOS 14 以降
-- Xcode 26 以降（CI では 26.3 を使用）
+- Xcode（使用バージョンは `.github/workflows/ci.yml` を参照）
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen)
 - [SwiftLint](https://github.com/realm/SwiftLint)
 
