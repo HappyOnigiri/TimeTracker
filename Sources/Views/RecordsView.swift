@@ -16,6 +16,7 @@ struct RecordsView: View {
     @State var editorTarget: EditorTarget?
     @State private var popoverLog: TimeLog?
     @State private var timelineZoom: CGFloat = 48
+    @State private var showingNoteRename = false
 
     /// 表示モード。リスト＝月単位の一覧、タイムライン＝月単位の横軸ドラッグ編集。
     private enum ViewMode: String, CaseIterable, Identifiable {
@@ -50,6 +51,16 @@ struct RecordsView: View {
                 }
             )
         }
+        .sheet(isPresented: $showingNoteRename) {
+            WorkNoteRenameView(logs: logs) { old, new in
+                WorkNoteRenaming.rename(from: old, to: new, in: logs, context: context)
+            }
+        }
+    }
+
+    /// 一括変更の対象になりうる作業内容（全期間・絞り込みなし）。
+    private var noteCandidates: [String] {
+        WorkNoteSuggestions.candidates(from: logs, limit: .max)
     }
 
     // MARK: - 操作部
@@ -87,6 +98,16 @@ struct RecordsView: View {
             }
             .disabled(projects.isEmpty)
             .help(projects.isEmpty ? "先にプロジェクトを作成してください" : "記録を追加")
+
+            Button {
+                showingNoteRename = true
+            } label: {
+                Label("作業内容を一括変更", systemImage: "text.badge.checkmark")
+            }
+            // 操作部は横に詰まっているため、アイコンのみにして help で補う。
+            .labelStyle(.iconOnly)
+            .disabled(noteCandidates.isEmpty)
+            .help(noteCandidates.isEmpty ? "変更できる作業内容がありません" : "作業内容の文言を一括変更")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -264,37 +285,6 @@ struct RecordsView: View {
         Calendar.current.date(byAdding: .month, value: 1, to: selectedMonth) ?? selectedMonth
     }
 
-    // MARK: - 日付ユーティリティ
-
-    /// 今月の 1 日 0:00。
-    private static var currentMonthStart: Date {
-        monthStart(for: Date())
-    }
-
-    /// 指定日が属する月の 1 日 0:00。
-    private static func monthStart(for date: Date) -> Date {
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([.year, .month], from: date)
-        return calendar.date(from: components) ?? calendar.startOfDay(for: date)
-    }
-
-    /// 「2026年6月」の日本式月ラベル。
-    private static func monthLabel(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "ja_JP")
-        formatter.dateFormat = "yyyy年M月"
-        return formatter.string(from: date)
-    }
-
-    /// 「6月15日(日)」の日本式日付ラベル。
-    private static func dayLabel(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "ja_JP")
-        formatter.dateFormat = "M月d日(E)"
-        return formatter.string(from: date)
-    }
 }
 
 /// 日付ごとにまとめた記録グループ。

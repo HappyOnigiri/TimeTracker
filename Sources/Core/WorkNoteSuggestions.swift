@@ -1,7 +1,8 @@
 import Foundation
 
 enum WorkNoteSuggestions {
-    static func candidates(from logs: [TimeLog]) -> [String] {
+    /// 最終使用日の新しい順に作業内容の候補を返す。`limit` で件数を絞る。
+    static func candidates(from logs: [TimeLog], limit: Int = 20) -> [String] {
         var latestDate: [String: Date] = [:]
         for log in logs {
             let refDate = log.endDate ?? log.startDate
@@ -13,7 +14,7 @@ enum WorkNoteSuggestions {
         }
         return latestDate
             .sorted { $0.value > $1.value }
-            .prefix(20)
+            .prefix(limit)
             .map(\.key)
     }
 }
