@@ -50,6 +50,7 @@ struct DashboardView: View {
             Menu {
                 Button("時間別 CSV") { exportCSV() }
                 Button("作業内容別 CSV") { exportNoteSummaryCSV() }
+                Button("日付別 CSV") { exportDailyWorkCSV() }
             } label: {
                 Label("CSV 出力", systemImage: "square.and.arrow.up")
             }
@@ -276,6 +277,16 @@ struct DashboardView: View {
         handleExport(CSVExportService.exportNoteSummary(
             totals: noteTotals,
             suggestedName: "note-summary-\(DashboardView.fileMonthLabel(for: selectedMonth)).csv"))
+    }
+
+    /// 日付別の稼働時間 CSV。日付境界は実行環境のタイムゾーンに依らず JST で固定する。
+    private func exportDailyWorkCSV() {
+        let calendar = Calendar.jst
+        let summaries = ReportAggregator.dailyWorkSummaries(logs: visibleLogs, in: range, calendar: calendar)
+        handleExport(CSVExportService.exportDailyWork(
+            summaries: summaries,
+            calendar: calendar,
+            suggestedName: "daily-work-\(DashboardView.fileMonthLabel(for: selectedMonth)).csv"))
     }
 
     private func handleExport(_ result: CSVExportService.ExportResult) {

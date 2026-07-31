@@ -125,4 +125,59 @@ struct CSVExporterTests {
         let lines = csv.split(separator: "\n", omittingEmptySubsequences: true)
         #expect(lines[1] == "'=危険,3600,1.0")
     }
+
+    // MARK: - makeDailyWorkCSV
+
+    @Test("日付別 CSV はヘッダと日付・稼働時間・作業内容を出力する")
+    func dailyWorkCSVEmitsHeaderAndRows() {
+        let summaries = [
+            DailyWorkSummary(day: TestSupport.date(2025, 1, 10), seconds: 27000, notes: ["設計"]),
+            DailyWorkSummary(day: TestSupport.date(2025, 1, 11), seconds: 1830, notes: [])
+        ]
+        let csv = CSVExporter.makeDailyWorkCSV(summaries: summaries, calendar: TestSupport.utcCalendar)
+        let lines = csv.split(separator: "\n", omittingEmptySubsequences: true)
+        #expect(lines[0] == "日付,稼働時間(H),作業内容")
+        #expect(lines[1] == "2025-01-10,7.50,設計")
+        #expect(lines[2] == "2025-01-11,0.51,") // 作業内容なしは空フィールド
+    }
+
+    @Test("日付別 CSV は稼働のない日を 0.00 で出力する")
+    func dailyWorkCSVEmitsZeroForEmptyDays() {
+        let summaries = [
+            DailyWorkSummary(day: TestSupport.date(2025, 1, 10), seconds: 0, notes: [])
+        ]
+        let csv = CSVExporter.makeDailyWorkCSV(summaries: summaries, calendar: TestSupport.utcCalendar)
+        let lines = csv.split(separator: "\n", omittingEmptySubsequences: true)
+        #expect(lines[1] == "2025-01-10,0.00,")
+    }
+
+    @Test("日付別 CSV は複数の作業内容をカンマ区切りでクォートして出力する")
+    func dailyWorkCSVJoinsNotesWithComma() {
+        let summaries = [
+            DailyWorkSummary(day: TestSupport.date(2025, 1, 10), seconds: 3600, notes: ["設計", "実装"])
+        ]
+        let csv = CSVExporter.makeDailyWorkCSV(summaries: summaries, calendar: TestSupport.utcCalendar)
+        let lines = csv.split(separator: "\n", omittingEmptySubsequences: true)
+        #expect(lines[1] == "2025-01-10,1.00,\"設計,実装\"")
+    }
+
+    @Test("日付別 CSV は JST の日付で出力する")
+    func dailyWorkCSVFormatsDateInJST() {
+        // UTC 1/9 16:00 は JST 1/10 01:00。JST の日付境界は 1/10。
+        let day = Calendar.jst.startOfDay(for: TestSupport.date(2025, 1, 9, 16, 0))
+        let csv = CSVExporter.makeDailyWorkCSV(
+            summaries: [DailyWorkSummary(day: day, seconds: 3600, notes: [])], calendar: .jst)
+        let lines = csv.split(separator: "\n", omittingEmptySubsequences: true)
+        #expect(lines[1] == "2025-01-10,1.00,")
+    }
+
+    @Test("日付別 CSV は作業内容の数式トリガを無害化する")
+    func dailyWorkCSVEscapesFormulaInNotes() {
+        let summaries = [
+            DailyWorkSummary(day: TestSupport.date(2025, 1, 10), seconds: 3600, notes: ["=危険", "実装"])
+        ]
+        let csv = CSVExporter.makeDailyWorkCSV(summaries: summaries, calendar: TestSupport.utcCalendar)
+        let lines = csv.split(separator: "\n", omittingEmptySubsequences: true)
+        #expect(lines[1] == "2025-01-10,1.00,\"'=危険,実装\"")
+    }
 }

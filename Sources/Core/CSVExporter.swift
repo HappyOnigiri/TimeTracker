@@ -3,6 +3,7 @@ import Foundation
 /// タイムログを CSV 文字列へ変換する純粋ロジック。
 enum CSVExporter {
     static let header = "project,start,end,duration_seconds,notes"
+    static let dailyWorkHeader = "日付,稼働時間(H),作業内容"
 
     /// RFC 4180 準拠の CSV を生成する。日時は ISO 8601。計測中のログは除外する。
     ///
@@ -46,6 +47,30 @@ enum CSVExporter {
                 escape(total.note),
                 String(Int(total.seconds)),
                 String(format: "%.1f", total.seconds / 3600)
+            ]
+            rows.append(fields.joined(separator: ","))
+        }
+        return rows.joined(separator: "\n") + "\n"
+    }
+
+    /// 日付別の稼働時間 CSV を生成する。
+    ///
+    /// 稼働時間は時間単位・小数第 2 位。作業内容が複数ある日はカンマ区切りで 1 フィールドに収める
+    /// （フィールドはカンマを含むため CSV クォートで囲まれる）。
+    /// 日付の文字列化は `calendar` のタイムゾーンで行うため、集計時と同じカレンダーを渡すこと。
+    static func makeDailyWorkCSV(summaries: [DailyWorkSummary], calendar: Calendar = .current) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        var rows = [dailyWorkHeader]
+        for summary in summaries {
+            let fields = [
+                formatter.string(from: summary.day),
+                String(format: "%.2f", summary.seconds / 3600),
+                escape(summary.notes.joined(separator: ","))
             ]
             rows.append(fields.joined(separator: ","))
         }

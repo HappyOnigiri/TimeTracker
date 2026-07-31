@@ -25,6 +25,15 @@ enum CSVExportService {
         save(csv: CSVExporter.makeNoteSummaryCSV(totals: totals), suggestedName: suggestedName)
     }
 
+    static func exportDailyWork(
+        summaries: [DailyWorkSummary],
+        calendar: Calendar = .current,
+        suggestedName: String = "daily-work.csv"
+    ) -> ExportResult {
+        save(csv: CSVExporter.makeDailyWorkCSV(summaries: summaries, calendar: calendar),
+             suggestedName: suggestedName)
+    }
+
     private static func save(csv: String, suggestedName: String) -> ExportResult {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.commaSeparatedText]
