@@ -1,6 +1,10 @@
 import Observation
 import SwiftUI
 
+enum WindowID {
+    static let main = "main"
+}
+
 /// メインウィンドウのタブ。
 enum MainTab: String, CaseIterable, Identifiable {
     case dashboard
