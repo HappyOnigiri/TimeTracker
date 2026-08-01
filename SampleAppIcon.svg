@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3D6CF0"/>
+      <stop offset="1" stop-color="#244FBF"/>
+    </linearGradient>
+    <clipPath id="icon-shape">
+      <rect x="0" y="0" width="1024" height="1024" rx="224" ry="224"/>
+    </clipPath>
+  </defs>
+  <rect x="0" y="0" width="1024" height="1024" rx="224" ry="224" fill="url(#bg)"/>
+  <circle cx="512" cy="544" r="300" fill="none" stroke="#FFFFFF" stroke-width="56"/>
+  <rect x="476" y="120" width="72" height="80" rx="20" fill="#FFFFFF"/>
+  <line x1="512" y1="544" x2="512" y2="360" stroke="#FFFFFF" stroke-width="44" stroke-linecap="round"/>
+  <line x1="512" y1="544" x2="648" y2="544" stroke="#9DBBFF" stroke-width="36" stroke-linecap="round"/>
+  <circle cx="512" cy="544" r="32" fill="#FFFFFF"/>
+  <g clip-path="url(#icon-shape)" transform="rotate(-12 512 750)">
+    <rect x="-100" y="650" width="1224" height="200" fill="#F97316"/>
+    <rect x="-100" y="650" width="1224" height="12" fill="#FFFFFF" fill-opacity="0.9"/>
+    <rect x="-100" y="838" width="1224" height="12" fill="#FFFFFF" fill-opacity="0.9"/>
+    <text
+      x="512"
+      y="791"
+      fill="#FFFFFF"
+      font-family="Arial, Helvetica, sans-serif"
+      font-size="116"
+      font-weight="800"
+      letter-spacing="10"
+      text-anchor="middle"
+    >SAMPLE</text>
+  </g>
+</svg>
