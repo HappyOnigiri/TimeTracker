@@ -32,6 +32,7 @@ final class TimerEngine {
     @ObservationIgnored private var context: ModelContext?
     @ObservationIgnored private var settings = AppSettings()
     @ObservationIgnored private var idleTimer: Timer?
+    @ObservationIgnored private var terminationObserver: NSObjectProtocol?
 
     /// アイドル判定の監視間隔（秒）。
     private let idlePollInterval: TimeInterval = 5
@@ -39,13 +40,14 @@ final class TimerEngine {
     var isAnyRunning: Bool { !runningProjectIDs.isEmpty }
 
     /// View 層から ModelContext を受け取って初期化する。
-    /// 前回セッションでクラッシュ等により開きっぱなしのログがあれば破棄する。
+    /// 前回セッションでクラッシュ等により開きっぱなしのログがあれば閉じる。
     func configure(context: ModelContext) {
         guard self.context == nil else { return }
         self.context = context
         closeOrphanedLogs()
         refreshRunningState()
         startIdleMonitoring()
+        observeTermination()
     }
 
     func isRunning(_ project: Project) -> Bool {
@@ -121,6 +123,7 @@ final class TimerEngine {
     }
 
     private func idleTimerFired() {
+        recordHeartbeat()
         refrontIdleAlertIfNeeded()
         checkIdle()
     }
@@ -129,7 +132,7 @@ final class TimerEngine {
         guard let panel = idleAlertPanel else { return }
         let idleSeconds = IdleDetector.secondsSinceLastInput()
         guard idleSeconds < settings.idleThresholdSeconds else { return }
-        centerPanel(panel)
+        FloatingPanel.center(panel)
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate()
     }
@@ -218,6 +221,33 @@ final class TimerEngine {
         workNotePanel = nil
     }
 
+    // MARK: - 異常終了への備え
+
+    /// アプリ終了時に計測中のログを終了時刻で閉じる。
+    ///
+    /// 閉じずに終了すると開きっぱなしのログが残り、次回起動時に `closeOrphanedLogs()`
+    /// へ回ってしまう。終了処理中はパネルを出せないため作業内容の入力は求めない。
+    private func observeTermination() {
+        guard terminationObserver == nil else { return }
+        terminationObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            // 終了処理中は Task のスケジュールが実行される保証がないため同期的に停止する。
+            MainActor.assumeIsolated {
+                self?.stopAll()
+            }
+        }
+    }
+
+    /// 計測中は生存時刻を記録し続ける。
+    /// クラッシュ・強制終了・電源断で終了処理が走らなくても、
+    /// 次回起動時にここまでの計測を復元できる。
+    private func recordHeartbeat(now: Date = Date()) {
+        guard isAnyRunning else { return }
+        settings.recordHeartbeat(now)
+    }
+
     // MARK: - 内部処理
 
     private func fetchOpenLogs() -> [TimeLog] {
@@ -228,12 +258,17 @@ final class TimerEngine {
         return all.filter { $0.endDate == nil }
     }
 
-    /// 前回セッションの開きっぱなしのログを開始時刻で閉じる（時間を捏造しない）。
-    private func closeOrphanedLogs() {
+    /// 前回セッションの開きっぱなしのログを、最後に生存を記録した時刻で閉じる。
+    ///
+    /// heartbeat がなければ開始時刻で閉じる（時間を捏造しない）。
+    /// heartbeat は最大 `idlePollInterval` 秒ぶん古いだけなので、
+    /// クラッシュしても計測はほぼ失われない。
+    private func closeOrphanedLogs(now: Date = Date()) {
         let openLogs = fetchOpenLogs()
         guard !openLogs.isEmpty else { return }
+        let heartbeat = settings.lastHeartbeat
         for log in openLogs {
-            log.endDate = log.startDate
+            log.endDate = min(now, max(heartbeat ?? log.startDate, log.startDate))
         }
         save()
     }
@@ -258,7 +293,14 @@ final class TimerEngine {
     }
 
     private func save() {
-        try? context?.save()
+        guard let context else { return }
+        do {
+            try context.save()
+        } catch {
+            // 保存失敗を握り潰すと、計測が記録されないまま UI 上は正常に見えてしまう。
+            AppLog.persistence.error("計測ログの保存に失敗しました: \(error, privacy: .public)")
+            assertionFailure("計測ログの保存に失敗しました: \(error)")
+        }
     }
 }
 
@@ -303,7 +345,7 @@ extension TimerEngine {
     func showRetroactiveStartPanel(for project: Project) {
         retroactiveStartPanel?.close()
         let locale = settings.displayLanguage.locale
-        let panel = makePanel(
+        let panel = FloatingPanel.make(
             size: NSSize(width: 380, height: 300),
             title: L10n.string("開始時刻を指定", locale: locale)
         )
@@ -313,7 +355,7 @@ extension TimerEngine {
         )
         panel.contentView = NSHostingView(rootView: view.environment(\.locale, locale))
         retroactiveStartPanel = panel
-        presentPanel(panel)
+        FloatingPanel.present(panel)
     }
 
     func dismissRetroactiveStartPanel() {
@@ -325,7 +367,7 @@ extension TimerEngine {
         workNotePanel?.close()
         guard let context else { return }
         let locale = settings.displayLanguage.locale
-        let panel = makePanel(
+        let panel = FloatingPanel.make(
             size: NSSize(width: 480, height: 350),
             title: L10n.string("作業内容を記録", locale: locale),
             styleMask: [.titled, .resizable]
@@ -335,7 +377,7 @@ extension TimerEngine {
             .modelContainer(context.container)
         panel.contentView = NSHostingView(rootView: view)
         workNotePanel = panel
-        presentPanel(panel)
+        FloatingPanel.present(panel)
     }
 
     fileprivate func showIdleStopAlert() {
@@ -343,7 +385,7 @@ extension TimerEngine {
         guard let context else { return }
         let locale = settings.displayLanguage.locale
         let panelHeight: CGFloat = settings.promptForWorkNoteOnStop ? 420 : 280
-        let panel = makePanel(
+        let panel = FloatingPanel.make(
             size: NSSize(width: 480, height: panelHeight),
             title: L10n.string("タイマー自動停止", locale: locale), level: .screenSaver,
             styleMask: [.titled, .resizable]
@@ -353,42 +395,6 @@ extension TimerEngine {
             .modelContainer(context.container)
         panel.contentView = NSHostingView(rootView: view)
         idleAlertPanel = panel
-        presentPanel(panel)
-    }
-
-    private func makePanel(
-        size: NSSize, title: String,
-        level: NSWindow.Level = .floating,
-        styleMask: NSWindow.StyleMask = [.titled]
-    ) -> NSPanel {
-        let panel = NSPanel(
-            contentRect: NSRect(origin: .zero, size: size),
-            styleMask: styleMask, backing: .buffered, defer: false
-        )
-        panel.title = title
-        panel.level = level
-        panel.isReleasedWhenClosed = false
-        panel.hidesOnDeactivate = false
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        centerPanel(panel)
-        return panel
-    }
-
-    private func centerPanel(_ panel: NSPanel) {
-        let mouse = NSEvent.mouseLocation
-        let screen = NSScreen.screens.first {
-            NSMouseInRect(mouse, $0.frame, false)
-        } ?? NSScreen.main
-        guard let visibleFrame = screen?.visibleFrame else { return }
-        let panelSize = panel.frame.size
-        panel.setFrameOrigin(NSPoint(
-            x: visibleFrame.midX - panelSize.width / 2,
-            y: visibleFrame.midY - panelSize.height / 2
-        ))
-    }
-
-    private func presentPanel(_ panel: NSPanel) {
-        panel.makeKeyAndOrderFront(nil)
-        NSApp.activate()
+        FloatingPanel.present(panel)
     }
 }

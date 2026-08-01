@@ -50,13 +50,13 @@ final class ActiveTimeTracker {
                 } else {
                     context.insert(ActiveSession(startDate: now))
                 }
-                try? context.save()
+                save()
             }
         } else {
             if let session = openSession {
                 let lastInput = now.addingTimeInterval(-idleSeconds)
                 session.endDate = max(lastInput, session.startDate)
-                try? context.save()
+                save()
             }
         }
     }
@@ -87,6 +87,16 @@ final class ActiveTimeTracker {
         for session in open {
             session.endDate = max(lastInput, session.startDate)
         }
-        if !open.isEmpty { try? context.save() }
+        if !open.isEmpty { save() }
+    }
+
+    private func save() {
+        guard let context else { return }
+        do {
+            try context.save()
+        } catch {
+            AppLog.persistence.error("アクティブ時間の保存に失敗しました: \(error, privacy: .public)")
+            assertionFailure("アクティブ時間の保存に失敗しました: \(error)")
+        }
     }
 }
