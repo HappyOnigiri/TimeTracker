@@ -158,7 +158,11 @@ struct CSVExporterTests {
             DailyWorkSummary(day: TestSupport.date(2025, 1, 10), seconds: 27000, notes: ["設計"]),
             DailyWorkSummary(day: TestSupport.date(2025, 1, 11), seconds: 1830, notes: [])
         ]
-        let csv = CSVExporter.makeDailyWorkCSV(summaries: summaries, calendar: TestSupport.utcCalendar)
+        let csv = CSVExporter.makeDailyWorkCSV(
+            summaries: summaries,
+            calendar: TestSupport.utcCalendar,
+            locale: japanese
+        )
         let lines = csv.split(separator: "\n", omittingEmptySubsequences: true)
         #expect(lines[0] == "日付,稼働時間(H),作業内容")
         #expect(lines[1] == "2025-01-10,7.50,設計")
