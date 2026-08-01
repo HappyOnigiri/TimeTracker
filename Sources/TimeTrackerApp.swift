@@ -11,15 +11,29 @@ struct TimeTrackerApp: App {
     @State private var navigation = AppNavigation()
     private let container: ModelContainer
 
+    /// テストホストとして起動されたか。
+    ///
+    /// `xcodebuild test` はアプリ本体をプロセス起動してテストバンドルを注入するため、
+    /// 通常起動と同じ初期化が走ってしまう。実アプリと同じサンドボックスコンテナで動く以上、
+    /// 既定のストアを開けば本番データを壊す（起動時の孤児ログ整理が計測中ログを潰す）。
+    /// ストアは in-memory にし、メニューバーにも常駐しない。
+    private let isTestHost: Bool
+
     init() {
-        if ProcessInfo.processInfo.environment["XCTestBundlePath"] == nil,
+        let isTestHost = ProcessInfo.processInfo.environment["XCTestBundlePath"] != nil
+        self.isTestHost = isTestHost
+
+        if !isTestHost,
            let bundleID = Bundle.main.bundleIdentifier,
            NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).count > 1 {
             exit(0)
         }
 
         do {
-            container = try ModelContainer(for: Project.self, TimeLog.self, ActiveSession.self)
+            container = try ModelContainer(
+                for: Project.self, TimeLog.self, ActiveSession.self,
+                configurations: ModelConfiguration(isStoredInMemoryOnly: isTestHost)
+            )
 #if SCREENSHOT_BUILD
             try ScreenshotSampleData.replaceAll(
                 in: container.mainContext,
@@ -32,7 +46,7 @@ struct TimeTrackerApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra {
+        MenuBarExtra(isInserted: .constant(!isTestHost)) {
             MenuBarContentView()
                 .environment(engine)
                 .environment(navigation)
