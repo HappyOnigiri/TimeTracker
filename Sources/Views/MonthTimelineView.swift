@@ -38,6 +38,7 @@ struct MonthTimelineView: View {
 
     @Environment(\.modelContext) var context
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.locale) var locale
 
     var activeHighlightColor: Color {
         colorScheme == .dark
@@ -189,7 +190,7 @@ struct MonthTimelineView: View {
         let isDraggingRow = row.items.contains { $0.log.id == dragLogID }
         let isToday = Calendar.current.isDateInToday(row.day)
         return HStack(alignment: .top, spacing: 0) {
-            Text(MonthTimelineView.dayLabel(for: row.day))
+            Text(MonthTimelineView.dayLabel(for: row.day, locale: locale))
                 .font(.callout)
                 .fontWeight(isToday ? .bold : .regular)
                 .frame(width: dayGutter, height: laneHeight, alignment: .leading)
@@ -319,7 +320,11 @@ extension MonthTimelineView {
             }
 
             if width > 36 {
-                Text(log.isRunning ? "計測中" : (log.project?.name ?? "（不明）"))
+                Text(
+                    log.isRunning
+                        ? L10n.string("計測中", locale: locale)
+                        : (log.project?.name ?? L10n.string("（不明）", locale: locale))
+                )
                     .font(.caption2.bold())
                     .lineLimit(1)
                     .foregroundStyle(log.isRunning ? Color.green : Color.white)

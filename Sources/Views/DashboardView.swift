@@ -4,6 +4,7 @@ import SwiftUI
 
 /// 稼働時間レポートのダッシュボード。合計と日次推移をグラフ表示し、CSV 出力も行う。
 struct DashboardView: View {
+    @Environment(\.locale) private var locale
     @Query private var logs: [TimeLog]
     @Query(sort: \Project.sortOrder) private var projects: [Project]
 
@@ -43,7 +44,7 @@ struct DashboardView: View {
         HStack(alignment: .center, spacing: 12) {
             Button { shiftMonth(by: -1) } label: { Image(systemName: "chevron.left") }
                 .help("前の月")
-            Text(DashboardView.monthLabel(for: selectedMonth))
+            Text(DashboardView.monthLabel(for: selectedMonth, locale: locale))
                 .font(.headline).monospacedDigit().frame(minWidth: 110)
             Button { shiftMonth(by: 1) } label: { Image(systemName: "chevron.right") }
                 .help("次の月").disabled(isCurrentMonth)
@@ -86,7 +87,7 @@ struct DashboardView: View {
     private var projectFilterLabel: String {
         guard let id = selectedProjectID,
               let project = projects.first(where: { $0.id == id }) else {
-            return "すべてのプロジェクト"
+            return L10n.string("すべてのプロジェクト", locale: locale)
         }
         return project.name
     }
@@ -98,10 +99,10 @@ struct DashboardView: View {
             Text("プロジェクト別 合計稼働時間").font(.headline)
             Chart(projectTotals) { total in
                 BarMark(
-                    x: .value("時間", DurationFormatter.hours(from: total.seconds)),
-                    y: .value("プロジェクト", total.name)
+                    x: .value(L10n.string("時間", locale: locale), DurationFormatter.hours(from: total.seconds)),
+                    y: .value(L10n.string("プロジェクト", locale: locale), total.name)
                 )
-                .foregroundStyle(by: .value("プロジェクト", total.name))
+                .foregroundStyle(by: .value(L10n.string("プロジェクト", locale: locale), total.name))
                 .annotation(position: .trailing) {
                     Text(DurationFormatter.compactHours(from: total.seconds))
                         .font(.caption2)
@@ -129,7 +130,10 @@ struct DashboardView: View {
             Chart(noteTotals) { total in
                 BarMark(
                     x: .value("時間", DurationFormatter.hours(from: total.seconds)),
-                    y: .value("作業内容", total.note)
+                    y: .value(
+                        L10n.string("作業内容", locale: locale),
+                        total.note ?? L10n.string("未分類", locale: locale)
+                    )
                 )
                 .foregroundStyle(Color.accentColor.opacity(0.75))
                 .annotation(position: .trailing) {
@@ -151,14 +155,14 @@ struct DashboardView: View {
             Text("1日ごとの稼働時間推移").font(.headline)
             Chart(dailyDurations) { item in
                 BarMark(
-                    x: .value("日付", item.day, unit: .day),
-                    y: .value("時間", DurationFormatter.hours(from: item.seconds))
+                    x: .value(L10n.string("日付", locale: locale), item.day, unit: .day),
+                    y: .value(L10n.string("時間", locale: locale), DurationFormatter.hours(from: item.seconds))
                 )
-                .foregroundStyle(by: .value("プロジェクト", item.name))
+                .foregroundStyle(by: .value(L10n.string("プロジェクト", locale: locale), item.name))
                 ForEach(dailyTotals.filter { $0.seconds > 0 }, id: \.day) { total in
                     PointMark(
-                        x: .value("日付", total.day, unit: .day),
-                        y: .value("時間", DurationFormatter.hours(from: total.seconds))
+                        x: .value(L10n.string("日付", locale: locale), total.day, unit: .day),
+                        y: .value(L10n.string("時間", locale: locale), DurationFormatter.hours(from: total.seconds))
                     )
                     .opacity(0)
                     .annotation(position: .top) {
@@ -174,7 +178,7 @@ struct DashboardView: View {
                 AxisMarks(values: .stride(by: .day, count: 1)) { _ in
                     AxisGridLine()
                     AxisTick()
-                    AxisValueLabel(format: .dateTime.day())
+                    AxisValueLabel(format: .dateTime.day().locale(locale))
                 }
             }
             .chartYAxisLabel("時間")
@@ -183,32 +187,6 @@ struct DashboardView: View {
     }
 
     // MARK: - 集計
-
-    fileprivate static var currentMonthStart: Date {
-        monthStart(for: Date())
-    }
-
-    fileprivate static func monthStart(for date: Date) -> Date {
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([.year, .month], from: date)
-        return calendar.date(from: components) ?? calendar.startOfDay(for: date)
-    }
-
-    fileprivate static func monthLabel(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "ja_JP")
-        formatter.dateFormat = "yyyy年M月"
-        return formatter.string(from: date)
-    }
-
-    fileprivate static func fileMonthLabel(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM"
-        return formatter.string(from: date)
-    }
 
     private var isCurrentMonth: Bool {
         selectedMonth == DashboardView.currentMonthStart
@@ -272,27 +250,71 @@ struct DashboardView: View {
     }
 
     private func exportCSV() {
+        let format = L10n.string("filename.timelogs", locale: locale)
         handleExport(CSVExportService.export(
             logs: filteredLogs, clipTo: range,
-            suggestedName: "timelogs-\(DashboardView.fileMonthLabel(for: selectedMonth)).csv"))
+            suggestedName: String(
+                format: format, locale: locale,
+                DashboardView.fileMonthLabel(for: selectedMonth)
+            ),
+            locale: locale))
     }
 
     private func exportNoteSummaryCSV() {
+        let format = L10n.string("filename.note_summary", locale: locale)
         handleExport(CSVExportService.exportNoteSummary(
             totals: noteTotals,
-            suggestedName: "note-summary-\(DashboardView.fileMonthLabel(for: selectedMonth)).csv"))
+            suggestedName: String(
+                format: format, locale: locale,
+                DashboardView.fileMonthLabel(for: selectedMonth)
+            ),
+            locale: locale))
     }
 
     private func handleExport(_ result: CSVExportService.ExportResult) {
         switch result {
-        case .saved(let url): exportMessage = "保存しました: \(url.lastPathComponent)"
+        case .saved(let url):
+            exportMessage = String(
+                format: L10n.string("export.saved", locale: locale),
+                locale: locale, url.lastPathComponent
+            )
         case .cancelled: exportMessage = nil
-        case .failed(let message): exportMessage = "保存に失敗: \(message)"
+        case .failed(let message):
+            exportMessage = String(
+                format: L10n.string("export.failed", locale: locale),
+                locale: locale, message
+            )
         }
     }
 }
 
 extension DashboardView {
+    fileprivate static var currentMonthStart: Date {
+        monthStart(for: Date())
+    }
+
+    fileprivate static func monthStart(for date: Date) -> Date {
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.year, .month], from: date)
+        return calendar.date(from: components) ?? calendar.startOfDay(for: date)
+    }
+
+    fileprivate static func monthLabel(for date: Date, locale: Locale = .current) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = locale
+        formatter.setLocalizedDateFormatFromTemplate("yMMMM")
+        return formatter.string(from: date)
+    }
+
+    fileprivate static func fileMonthLabel(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM"
+        return formatter.string(from: date)
+    }
+
     /// 日付別の稼働時間 CSV。日付境界は実行環境のタイムゾーンに依らず JST で固定する。
     private func exportDailyWorkCSV() {
         let calendar = Calendar.jst
@@ -300,10 +322,15 @@ extension DashboardView {
             logs: visibleLogs,
             in: DashboardView.dailyWorkRange(for: selectedMonth),
             calendar: calendar)
+        let format = L10n.string("filename.daily_work", locale: locale)
         handleExport(CSVExportService.exportDailyWork(
             summaries: summaries,
             calendar: calendar,
-            suggestedName: "daily-work-\(DashboardView.fileMonthLabel(for: selectedMonth)).csv"))
+            suggestedName: String(
+                format: format, locale: locale,
+                DashboardView.fileMonthLabel(for: selectedMonth)
+            ),
+            locale: locale))
     }
 
     /// 選択月を JST の月初・翌月初として再構成する。

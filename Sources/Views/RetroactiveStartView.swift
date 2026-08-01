@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct RetroactiveStartView: View {
+    @Environment(\.locale) private var locale
     let project: Project
     let engine: TimerEngine
     let onDismiss: () -> Void
@@ -83,7 +84,8 @@ struct RetroactiveStartView: View {
         let now = Date()
         let startDate = Self.startOfMinute(selectedStartDate)
         guard startDate <= now else {
-            errorMessage = TimerEngine.RetroactiveStartResult.futureStartDate.retroactiveStartErrorMessage
+            errorMessage = TimerEngine.RetroactiveStartResult.futureStartDate
+                .retroactiveStartErrorMessage(locale: locale)
             return
         }
 
@@ -91,7 +93,7 @@ struct RetroactiveStartView: View {
         if result == .started {
             onDismiss()
         } else {
-            errorMessage = result.retroactiveStartErrorMessage
+            errorMessage = result.retroactiveStartErrorMessage(locale: locale)
         }
     }
 
@@ -101,18 +103,18 @@ struct RetroactiveStartView: View {
 }
 
 extension TimerEngine.RetroactiveStartResult {
-    var retroactiveStartErrorMessage: String? {
+    func retroactiveStartErrorMessage(locale: Locale) -> String? {
         switch self {
         case .started:
             nil
         case .futureStartDate:
-            "開始時刻は現在以前を指定してください。"
+            L10n.string("開始時刻は現在以前を指定してください。", locale: locale)
         case .alreadyRunning:
-            "このプロジェクトはすでに計測中です。"
+            L10n.string("このプロジェクトはすでに計測中です。", locale: locale)
         case .anotherProjectIsRunning:
-            "同時測定が無効のため、別のプロジェクトを計測中は遡って開始できません。"
+            L10n.string("同時測定が無効のため、別のプロジェクトを計測中は遡って開始できません。", locale: locale)
         case .engineNotConfigured:
-            "タイマーを開始できませんでした。"
+            L10n.string("タイマーを開始できませんでした。", locale: locale)
         }
     }
 }

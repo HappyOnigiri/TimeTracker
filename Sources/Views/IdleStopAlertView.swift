@@ -2,6 +2,7 @@ import SwiftData
 import SwiftUI
 
 struct IdleStopAlertView: View {
+    @Environment(\.locale) private var locale
     let engine: TimerEngine
 
     @AppStorage(AppSettingsKey.promptForWorkNoteOnStop)
@@ -20,7 +21,9 @@ struct IdleStopAlertView: View {
                 .font(.title2.bold())
 
             if !engine.idleStoppedProjectNames.isEmpty {
-                Text(engine.idleStoppedProjectNames.joined(separator: "、"))
+                Text(engine.idleStoppedProjectNames.joined(
+                    separator: L10n.string("list.separator", locale: locale)
+                ))
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

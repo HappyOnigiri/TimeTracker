@@ -2,6 +2,7 @@ import SwiftUI
 
 /// 既存の作業内容タグを 1 つ選び、全期間の全記録にわたって別の文言へ置き換えるシート。
 struct WorkNoteRenameView: View {
+    @Environment(\.locale) private var locale
     /// 置換候補の抽出と件数プレビューに使う全ログ。
     let logs: [TimeLog]
     /// (旧文言, 新文言) を受け取り、変更した記録の件数を返す。実際の置換は呼び出し側が行う。
@@ -97,8 +98,16 @@ struct WorkNoteRenameView: View {
 
     /// 件数表示。未選択と対象 0 件は原因が違うので、同じ文言にしない。
     private var countLabel: String {
-        guard target != nil else { return "変更する作業内容を選択してください" }
-        return affectedCount > 0 ? "\(affectedCount) 件の記録が変更されます" : "対象の記録がありません"
+        guard target != nil else {
+            return L10n.string("変更する作業内容を選択してください", locale: locale)
+        }
+        guard affectedCount > 0 else {
+            return L10n.string("対象の記録がありません", locale: locale)
+        }
+        return String(
+            format: L10n.string("rename.affected_count", locale: locale),
+            locale: locale, affectedCount
+        )
     }
 
     private var trimmedNewText: String {

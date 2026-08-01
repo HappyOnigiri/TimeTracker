@@ -13,24 +13,27 @@ enum CSVExportService {
     static func export(
         logs: [TimeLog],
         clipTo range: ClosedRange<Date>? = nil,
-        suggestedName: String = "timelogs.csv"
+        suggestedName: String = "timelogs.csv",
+        locale: Locale = .current
     ) -> ExportResult {
-        save(csv: CSVExporter.makeCSV(logs: logs, clipTo: range), suggestedName: suggestedName)
+        save(csv: CSVExporter.makeCSV(logs: logs, clipTo: range, locale: locale), suggestedName: suggestedName)
     }
 
     static func exportNoteSummary(
         totals: [NoteTotal],
-        suggestedName: String = "note-summary.csv"
+        suggestedName: String = "note-summary.csv",
+        locale: Locale = .current
     ) -> ExportResult {
-        save(csv: CSVExporter.makeNoteSummaryCSV(totals: totals), suggestedName: suggestedName)
+        save(csv: CSVExporter.makeNoteSummaryCSV(totals: totals, locale: locale), suggestedName: suggestedName)
     }
 
     static func exportDailyWork(
         summaries: [DailyWorkSummary],
         calendar: Calendar = .current,
-        suggestedName: String = "daily-work.csv"
+        suggestedName: String = "daily-work.csv",
+        locale: Locale = .current
     ) -> ExportResult {
-        save(csv: CSVExporter.makeDailyWorkCSV(summaries: summaries, calendar: calendar),
+        save(csv: CSVExporter.makeDailyWorkCSV(summaries: summaries, calendar: calendar, locale: locale),
              suggestedName: suggestedName)
     }
 

@@ -2,6 +2,7 @@ import SwiftData
 import SwiftUI
 
 struct WorkNotePromptView: View {
+    @Environment(\.locale) private var locale
     let engine: TimerEngine
     @Query(sort: \TimeLog.startDate) private var allLogs: [TimeLog]
     @State private var notes: [String] = []
@@ -12,7 +13,7 @@ struct WorkNotePromptView: View {
                 .font(.title2.bold())
 
             if !projectNames.isEmpty {
-                Text(projectNames.joined(separator: "、"))
+                Text(projectNames.joined(separator: L10n.string("list.separator", locale: locale)))
                     .font(.body)
                     .foregroundStyle(.secondary)
             }

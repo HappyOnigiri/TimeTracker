@@ -2,6 +2,7 @@ import SwiftUI
 
 /// 設定画面。AppStorage で永続化する。
 struct SettingsView: View {
+    @Environment(\.locale) private var locale
     /// アイドル時間の設定範囲（分）。
     private static let thresholdRange = 0...120
 
@@ -19,6 +20,8 @@ struct SettingsView: View {
     private var promptForWorkNoteOnStop = AppSettingsDefault.promptForWorkNoteOnStop
     @AppStorage(AppSettingsKey.dimBlocksWithoutNotes)
     private var dimBlocksWithoutNotes = AppSettingsDefault.dimBlocksWithoutNotes
+    @AppStorage(AppSettingsKey.displayLanguage)
+    private var displayLanguage = AppSettingsDefault.displayLanguage
 
     /// ログイン項目（自動起動）の登録状態。システム側の状態を反映する。
     @State private var launchAtLogin = LoginItemService.isEnabled
@@ -42,12 +45,22 @@ struct SettingsView: View {
             launchAtLoginError = nil
         } catch {
             launchAtLogin = LoginItemService.isEnabled
-            launchAtLoginError = "設定の変更に失敗しました: \(error.localizedDescription)"
+            launchAtLoginError = String(
+                format: L10n.string("settings.change_failed", locale: locale),
+                locale: locale, error.localizedDescription
+            )
         }
     }
 
     var body: some View {
         Form {
+            Section("表示言語") {
+                Picker("言語", selection: $displayLanguage) {
+                    ForEach(AppLanguage.allCases) { language in
+                        Text(language.displayName(locale: locale)).tag(language)
+                    }
+                }
+            }
             Section("アイドル検知") {
                 Toggle("離席判定を有効にする", isOn: $idleDetectionEnabled)
                 HStack {

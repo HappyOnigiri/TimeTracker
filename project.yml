@@ -86,9 +86,12 @@ targets:
         excludes:
           - Assets.xcassets
           - Info.plist
+          - Localizable.xcstrings
           - TimeTracker.entitlements
           - TimeTrackerApp.swift
       - path: Tools/ReadmeScreenshotGenerator
+      - path: Sources/Localizable.xcstrings
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.TimeTracker.ReadmeScreenshotGenerator

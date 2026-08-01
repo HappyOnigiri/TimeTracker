@@ -11,7 +11,8 @@ struct TimeInputField: View {
 
     private static let displayFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ja_JP")
+        // 入力パーサと同じ 24 時間表記を、表示言語に関係なく維持する。
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "H:mm"
         return formatter
     }()

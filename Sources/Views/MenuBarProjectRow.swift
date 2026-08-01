@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct MenuBarProjectRow: View {
+    @Environment(\.locale) private var locale
     let project: Project
     let engine: TimerEngine
     let isExpanded: Bool
@@ -43,8 +44,22 @@ struct MenuBarProjectRow: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(running ? "「\(project.name)」を停止" : "「\(project.name)」を開始")
-                .accessibilityValue(running ? "計測中" : "停止中")
+                .accessibilityLabel(
+                    running
+                        ? String(
+                            format: L10n.string("project.stop_accessibility", locale: locale),
+                            locale: locale, project.name
+                        )
+                        : String(
+                            format: L10n.string("project.start_accessibility", locale: locale),
+                            locale: locale, project.name
+                        )
+                )
+                .accessibilityValue(
+                    running
+                        ? L10n.string("計測中", locale: locale)
+                        : L10n.string("停止中", locale: locale)
+                )
 
                 if !running {
                     Button {
@@ -64,8 +79,15 @@ struct MenuBarProjectRow: View {
                             .fill(Color.primary.opacity(isMenuHovered ? 0.08 : 0))
                     )
                     .onHover { isMenuHovered = $0 }
-                    .accessibilityLabel("「\(project.name)」の開始メニュー")
-                    .accessibilityValue(isExpanded ? "展開中" : "")
+                    .accessibilityLabel(
+                        String(
+                            format: L10n.string("project.start_menu_accessibility", locale: locale),
+                            locale: locale, project.name
+                        )
+                    )
+                    .accessibilityValue(
+                        isExpanded ? L10n.string("展開中", locale: locale) : ""
+                    )
                     .accessibilityHint("過去の時刻から開始するオプションを表示します")
                 }
             }
@@ -98,11 +120,11 @@ struct MenuBarProjectRow: View {
 }
 
 private struct OptionButton: View {
-    let title: String
+    let title: LocalizedStringResource
     let action: () -> Void
     @State private var isHovered = false
 
-    init(_ title: String, action: @escaping () -> Void) {
+    init(_ title: LocalizedStringResource, action: @escaping () -> Void) {
         self.title = title
         self.action = action
     }

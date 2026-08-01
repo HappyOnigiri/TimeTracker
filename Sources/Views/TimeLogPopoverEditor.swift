@@ -2,6 +2,7 @@ import SwiftData
 import SwiftUI
 
 struct TimeLogPopoverEditor: View {
+    @Environment(\.locale) private var locale
     let log: TimeLog
     let projects: [Project]
     let onSave: (Project, Date, Date, [String]) -> Void
@@ -44,7 +45,7 @@ struct TimeLogPopoverEditor: View {
                     .foregroundStyle(.secondary)
                 TimeInputField(date: $endDate, referenceDate: endDate)
                 Spacer()
-                Text(DurationFormatter.string(from: endDate.timeIntervalSince(startDate)))
+                Text(DurationFormatter.string(from: endDate.timeIntervalSince(startDate), locale: locale))
                     .font(.callout.monospacedDigit())
                     .foregroundStyle(.secondary)
             }

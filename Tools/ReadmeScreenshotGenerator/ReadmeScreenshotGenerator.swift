@@ -25,17 +25,31 @@ struct ReadmeScreenshotGenerator {
         )
         let now = Date()
         let sampleMonth = ScreenshotSampleData.sampleMonth(containing: now)
-        try ScreenshotSampleData.replaceAll(in: container.mainContext, now: now)
-
-        try render(
-            DashboardView(selectedMonth: sampleMonth)
-                .modelContainer(container)
-                .environment(\.colorScheme, .light)
-                .frame(width: 1_200, height: 800)
-                .background(Color(nsColor: .windowBackgroundColor)),
-            size: CGSize(width: 1_200, height: 800),
-            to: outputDirectory.appendingPathComponent("dashboard.png")
-        )
+        for language in [AppLanguage.english, .japanese] {
+            try ScreenshotSampleData.replaceAll(
+                in: container.mainContext,
+                now: now,
+                language: language
+            )
+            let languageDirectory = outputDirectory.appendingPathComponent(
+                language.rawValue,
+                isDirectory: true
+            )
+            try FileManager.default.createDirectory(
+                at: languageDirectory,
+                withIntermediateDirectories: true
+            )
+            try render(
+                DashboardView(selectedMonth: sampleMonth)
+                    .modelContainer(container)
+                    .environment(\.locale, language.locale)
+                    .environment(\.colorScheme, .light)
+                    .frame(width: 1_200, height: 800)
+                    .background(Color(nsColor: .windowBackgroundColor)),
+                size: CGSize(width: 1_200, height: 800),
+                to: languageDirectory.appendingPathComponent("dashboard.png")
+            )
+        }
     }
 
     private static func render<Content: View>(

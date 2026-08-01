@@ -155,15 +155,21 @@ extension MonthTimelineView {
 
     func blockHelp(log: TimeLog, start: Date, end: Date) -> String {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ja_JP")
-        formatter.dateFormat = "H:mm"
-        let name = log.project?.name ?? "（不明）"
+        formatter.locale = locale
+        formatter.setLocalizedDateFormatFromTemplate("j:mm")
+        let name = log.project?.name ?? L10n.string("（不明）", locale: locale)
         var text: String
         if log.isRunning {
-            text = "\(name)  \(formatter.string(from: start)) 〜 計測中"
+            text = String(
+                format: L10n.string("timeline.running_help", locale: locale), locale: locale,
+                name, formatter.string(from: start)
+            )
         } else {
-            let duration = DurationFormatter.string(from: end.timeIntervalSince(start))
-            text = "\(name)  \(formatter.string(from: start)) 〜 \(formatter.string(from: end))  (\(duration))"
+            let duration = DurationFormatter.string(from: end.timeIntervalSince(start), locale: locale)
+            text = String(
+                format: L10n.string("timeline.completed_help", locale: locale), locale: locale,
+                name, formatter.string(from: start), formatter.string(from: end), duration
+            )
         }
         if !log.notes.isEmpty {
             text += "\n" + log.notes.joined(separator: ", ")
@@ -171,11 +177,11 @@ extension MonthTimelineView {
         return text
     }
 
-    static func dayLabel(for date: Date) -> String {
+    static func dayLabel(for date: Date, locale: Locale = .current) -> String {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "ja_JP")
-        formatter.dateFormat = "M月d日(E)"
+        formatter.locale = locale
+        formatter.setLocalizedDateFormatFromTemplate("MMMEd")
         return formatter.string(from: date)
     }
 
@@ -194,13 +200,6 @@ extension MonthTimelineView {
 // MARK: - スナッププレビュー
 
 extension MonthTimelineView {
-    static let snapTimeFmt: DateFormatter = {
-        let fmt = DateFormatter()
-        fmt.locale = Locale(identifier: "ja_JP")
-        fmt.dateFormat = "H:mm"
-        return fmt
-    }()
-
     struct SnapPreviewGeometry {
         let localX: CGFloat
         let width: CGFloat
@@ -233,7 +232,7 @@ extension MonthTimelineView {
                 .frame(width: width, height: blockH)
                 .offset(x: localX)
 
-            let label = "\(Self.snapTimeFmt.string(from: snappedStart))–\(Self.snapTimeFmt.string(from: snappedEnd))"
+            let label = "\(snapTimeString(snappedStart))–\(snapTimeString(snappedEnd))"
             Text(label)
                 .font(.caption2.monospacedDigit().bold())
                 .foregroundStyle(Color.accentColor)
@@ -244,6 +243,13 @@ extension MonthTimelineView {
                 .offset(x: localX, y: -blockH + 2)
         }
         .allowsHitTesting(false)
+    }
+
+    private func snapTimeString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.setLocalizedDateFormatFromTemplate("j:mm")
+        return formatter.string(from: date)
     }
 }
 

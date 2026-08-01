@@ -173,6 +173,7 @@ struct ProjectManagementView: View {
 
 /// プロジェクトの新規作成/編集シート。
 private struct ProjectEditorView: View {
+    @Environment(\.locale) private var locale
     let project: Project?
     let onSave: (String, String) -> Void
 
@@ -189,7 +190,11 @@ private struct ProjectEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text(project == nil ? "プロジェクトを追加" : "プロジェクトを編集")
+            Text(
+                project == nil
+                    ? L10n.string("プロジェクトを追加", locale: locale)
+                    : L10n.string("プロジェクトを編集", locale: locale)
+            )
                 .font(.system(.title3, design: .rounded).bold())
 
             VStack(alignment: .leading, spacing: 8) {

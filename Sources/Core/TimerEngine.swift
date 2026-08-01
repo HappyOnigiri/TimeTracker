@@ -302,14 +302,16 @@ extension TimerEngine {
 extension TimerEngine {
     func showRetroactiveStartPanel(for project: Project) {
         retroactiveStartPanel?.close()
+        let locale = settings.displayLanguage.locale
         let panel = makePanel(
-            size: NSSize(width: 380, height: 300), title: "開始時刻を指定"
+            size: NSSize(width: 380, height: 300),
+            title: L10n.string("開始時刻を指定", locale: locale)
         )
         let view = RetroactiveStartView(
             project: project, engine: self,
             onDismiss: { [weak self] in self?.dismissRetroactiveStartPanel() }
         )
-        panel.contentView = NSHostingView(rootView: view)
+        panel.contentView = NSHostingView(rootView: view.environment(\.locale, locale))
         retroactiveStartPanel = panel
         presentPanel(panel)
     }
@@ -322,11 +324,14 @@ extension TimerEngine {
     fileprivate func showWorkNotePrompt() {
         workNotePanel?.close()
         guard let context else { return }
+        let locale = settings.displayLanguage.locale
         let panel = makePanel(
-            size: NSSize(width: 480, height: 350), title: "作業内容を記録",
+            size: NSSize(width: 480, height: 350),
+            title: L10n.string("作業内容を記録", locale: locale),
             styleMask: [.titled, .resizable]
         )
         let view = WorkNotePromptView(engine: self)
+            .environment(\.locale, locale)
             .modelContainer(context.container)
         panel.contentView = NSHostingView(rootView: view)
         workNotePanel = panel
@@ -336,13 +341,15 @@ extension TimerEngine {
     fileprivate func showIdleStopAlert() {
         idleAlertPanel?.close()
         guard let context else { return }
+        let locale = settings.displayLanguage.locale
         let panelHeight: CGFloat = settings.promptForWorkNoteOnStop ? 420 : 280
         let panel = makePanel(
             size: NSSize(width: 480, height: panelHeight),
-            title: "タイマー自動停止", level: .screenSaver,
+            title: L10n.string("タイマー自動停止", locale: locale), level: .screenSaver,
             styleMask: [.titled, .resizable]
         )
         let view = IdleStopAlertView(engine: self)
+            .environment(\.locale, locale)
             .modelContainer(context.container)
         panel.contentView = NSHostingView(rootView: view)
         idleAlertPanel = panel

@@ -46,6 +46,9 @@ screenshots: generate
 		-destination '$(DESTINATION)' \
 		-derivedDataPath $(SCREENSHOT_BUILD_DIR) \
 		CODE_SIGNING_ALLOWED=NO
+	xcrun xcstringstool compile \
+		--output-directory "$(SCREENSHOT_BUILD_DIR)/Build/Products/Release" \
+		Sources/Localizable.xcstrings
 	"$(SCREENSHOT_BUILD_DIR)/Build/Products/Release/$(SCREENSHOT_SCHEME)" \
 		"$(CURDIR)/Documentation/Images"
 
