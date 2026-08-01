@@ -12,6 +12,7 @@ enum AppSettingsKey {
     static let timelineSnapMinutes = "timelineSnapMinutes"
     static let promptForWorkNoteOnStop = "promptForWorkNoteOnStop"
     static let dimBlocksWithoutNotes = "dimBlocksWithoutNotes"
+    static let displayLanguage = "displayLanguage"
 }
 
 enum AppSettingsDefault {
@@ -22,6 +23,7 @@ enum AppSettingsDefault {
     static let timelineSnapMinutes = 5
     static let promptForWorkNoteOnStop = true
     static let dimBlocksWithoutNotes = true
+    static let displayLanguage = AppLanguage.system
 }
 
 /// 非 View 層から設定値を読むためのアクセサ。
@@ -37,7 +39,8 @@ struct AppSettings {
             AppSettingsKey.allowConcurrentTracking: AppSettingsDefault.allowConcurrentTracking,
             AppSettingsKey.timelineSnapMinutes: AppSettingsDefault.timelineSnapMinutes,
             AppSettingsKey.promptForWorkNoteOnStop: AppSettingsDefault.promptForWorkNoteOnStop,
-            AppSettingsKey.dimBlocksWithoutNotes: AppSettingsDefault.dimBlocksWithoutNotes
+            AppSettingsKey.dimBlocksWithoutNotes: AppSettingsDefault.dimBlocksWithoutNotes,
+            AppSettingsKey.displayLanguage: AppSettingsDefault.displayLanguage.rawValue
         ])
     }
 
@@ -75,5 +78,12 @@ struct AppSettings {
 
     var dimBlocksWithoutNotes: Bool {
         defaults.bool(forKey: AppSettingsKey.dimBlocksWithoutNotes)
+    }
+
+    var displayLanguage: AppLanguage {
+        guard let rawValue = defaults.string(forKey: AppSettingsKey.displayLanguage) else {
+            return AppSettingsDefault.displayLanguage
+        }
+        return AppLanguage(rawValue: rawValue) ?? AppSettingsDefault.displayLanguage
     }
 }

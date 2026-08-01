@@ -1,37 +1,39 @@
 # TimeTracker
 
-macOS のメニューバーから、プロジェクトごとの作業時間を記録するタイムトラッカーです。
+[日本語](README.ja.md)
 
-## 画面
+TimeTracker is a macOS menu bar app for tracking time by project.
 
-<img src="Documentation/Images/dashboard.png" alt="月ごとの作業時間を表示したダッシュボード" width="720">
+## Screenshots
 
-<img src="Documentation/Images/menu-bar.png" alt="プロジェクトを選んで計測を始めるメニューバー画面" width="640">
+<img src="Documentation/Images/en/dashboard.png" alt="Dashboard showing tracked time for the month" width="720">
 
-- macOS 14 以降
-- ローカル保存
+<img src="Documentation/Images/en/menu-bar.png" alt="Menu bar window for selecting a project and starting a timer" width="378">
 
-## 主な機能
+- macOS 14 or later
+- All data is stored locally
 
-- メニューバーからタイマーを開始・停止。複数プロジェクトの同時計測や、過去の時刻からの開始にも対応しています。
-- 一定時間操作がない場合はタイマーを自動停止し、離席時間を記録から除外します。
-- 記録に作業内容を付け、リストや月間タイムラインから追加・編集できます。
-- 月ごとの作業時間を集計し、CSV で保存できます。
-- プロジェクトを管理し、アイドル検知や Mac ログイン時の自動起動などを設定できます。
+## Features
 
-## プライバシー
+- Start and stop timers from the menu bar, track multiple projects concurrently, or start from an earlier time.
+- Automatically stop running timers after a period of inactivity and exclude idle time from your records.
+- Add work notes to records and edit them from the list or monthly timeline.
+- Review monthly tracked time and export reports as CSV files.
+- Manage projects and configure idle detection, launch at login, display language, and other preferences.
 
-記録は Mac の中に保存され、外部へ送信しません。アイドル検知では入力内容を取得せず、最後のキーボードやマウス操作からの経過時間だけを使います。アクセシビリティ権限と入力監視権限は不要です。
+## Privacy
 
-## インストール
+Your records stay on your Mac and are never sent elsewhere. Idle detection does not capture your input; it only checks the time since the last keyboard or mouse event. Accessibility and Input Monitoring permissions are not required.
 
-Xcode と XcodeGen が必要です。XcodeGen は Homebrew でインストールできます。
+## Installation
+
+Xcode and XcodeGen are required. Install XcodeGen with Homebrew:
 
 ```sh
 brew install xcodegen
 ```
 
-リポジトリを取得し、アプリを `/Applications` に配置します。
+Clone the repository and install the app in `/Applications`:
 
 ```sh
 git clone https://github.com/HappyOnigiri/TimeTracker.git
@@ -39,19 +41,19 @@ cd TimeTracker
 make install
 ```
 
-`make install` は既存の `/Applications/TimeTracker.app` を置き換えます。
+`make install` replaces an existing `/Applications/TimeTracker.app`.
 
-## コントリビュート
+## Contributing
 
-不具合や機能提案は [Issues](https://github.com/HappyOnigiri/TimeTracker/issues) へ、変更は Pull Request で送ってください。
+Please use [Issues](https://github.com/HappyOnigiri/TimeTracker/issues) for bug reports and feature requests, and submit changes as pull requests.
 
-Pull Request を作成する前に SwiftLint をインストールし、`make ci` が通ることを確認してください。
+Before opening a pull request, install SwiftLint and verify that `make ci` succeeds:
 
 ```sh
 brew install swiftlint
 make ci
 ```
 
-## ライセンス
+## License
 
-[MIT License](LICENSE) の下で公開しています。
+Released under the [MIT License](LICENSE).

@@ -31,9 +31,10 @@ struct DailyWorkSummary: Identifiable {
 
 /// 作業内容ごとの合計稼働時間。
 struct NoteTotal: Identifiable {
-    let note: String
+    /// nil は作業内容が入力されていないログの集計を表す。
+    let note: String?
     let seconds: TimeInterval
-    var id: String { note }
+    var id: String { note ?? "__uncategorized__" }
 }
 
 /// TimeLog 群を期間で切り出し、合計/日次に集計する純粋ロジック。
@@ -107,7 +108,7 @@ enum ReportAggregator {
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> [NoteTotal] {
-        var totals: [String: TimeInterval] = [:]
+        var totals: [String?: TimeInterval] = [:]
         for log in logs {
             let seconds = clippedDuration(for: log, in: range, now: now)
             guard seconds > 0 else { continue }
@@ -117,7 +118,7 @@ enum ReportAggregator {
                     .filter { !$0.isEmpty }
             )
             if uniqueNotes.isEmpty {
-                totals["(未分類)", default: 0] += seconds
+                totals[nil, default: 0] += seconds
             } else {
                 let share = seconds / Double(uniqueNotes.count)
                 for note in uniqueNotes {

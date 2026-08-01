@@ -3,13 +3,16 @@ import Testing
 @testable import TimeTracker
 
 struct CSVExporterTests {
+    private let english = Locale(identifier: "en")
+    private let japanese = Locale(identifier: "ja")
+
     @Test("ヘッダと完了ログの行が出力される")
     func emitsHeaderAndRows() {
         let project = Project(name: "実装")
         let log = TimeLog(project: project,
                           startDate: TestSupport.date(2025, 1, 10, 9, 0),
                           endDate: TestSupport.date(2025, 1, 10, 10, 0))
-        let csv = CSVExporter.makeCSV(logs: [log])
+        let csv = CSVExporter.makeCSV(logs: [log], locale: english)
         let lines = csv.split(separator: "\n", omittingEmptySubsequences: true)
         #expect(lines[0] == "project,start,end,duration_seconds,notes")
         #expect(lines.count == 2)
@@ -112,7 +115,7 @@ struct CSVExporterTests {
     @Test("作業内容別 CSV はヘッダと行が正しく出力される")
     func noteSummaryCSVEmitsHeaderAndRows() {
         let totals = [NoteTotal(note: "設計", seconds: 5400)]
-        let csv = CSVExporter.makeNoteSummaryCSV(totals: totals)
+        let csv = CSVExporter.makeNoteSummaryCSV(totals: totals, locale: english)
         let lines = csv.split(separator: "\n", omittingEmptySubsequences: true)
         #expect(lines[0] == "note,duration_seconds,duration_hours")
         #expect(lines[1] == "設計,5400,1.5")
@@ -128,13 +131,38 @@ struct CSVExporterTests {
 
     // MARK: - makeDailyWorkCSV
 
+    @Test("CSV ヘッダは表示言語に合わせる")
+    func localizesHeaders() {
+        #expect(CSVExporter.makeCSV(logs: [], locale: english) ==
+            "project,start,end,duration_seconds,notes\n")
+        #expect(CSVExporter.makeCSV(logs: [], locale: japanese) ==
+            "プロジェクト,開始,終了,稼働時間(秒),作業内容\n")
+        #expect(CSVExporter.makeNoteSummaryCSV(totals: [], locale: japanese) ==
+            "作業内容,稼働時間(秒),稼働時間(H)\n")
+        #expect(CSVExporter.makeDailyWorkCSV(summaries: [], locale: english) ==
+            "date,duration_hours,notes\n")
+    }
+
+    @Test("未分類の作業内容は表示言語に合わせる")
+    func localizesUncategorizedNote() {
+        let totals = [NoteTotal(note: nil, seconds: 3_600)]
+        #expect(CSVExporter.makeNoteSummaryCSV(totals: totals, locale: english)
+            .contains("Uncategorized,3600,1.0"))
+        #expect(CSVExporter.makeNoteSummaryCSV(totals: totals, locale: japanese)
+            .contains("未分類,3600,1.0"))
+    }
+
     @Test("日付別 CSV はヘッダと日付・稼働時間・作業内容を出力する")
     func dailyWorkCSVEmitsHeaderAndRows() {
         let summaries = [
             DailyWorkSummary(day: TestSupport.date(2025, 1, 10), seconds: 27000, notes: ["設計"]),
             DailyWorkSummary(day: TestSupport.date(2025, 1, 11), seconds: 1830, notes: [])
         ]
-        let csv = CSVExporter.makeDailyWorkCSV(summaries: summaries, calendar: TestSupport.utcCalendar)
+        let csv = CSVExporter.makeDailyWorkCSV(
+            summaries: summaries,
+            calendar: TestSupport.utcCalendar,
+            locale: japanese
+        )
         let lines = csv.split(separator: "\n", omittingEmptySubsequences: true)
         #expect(lines[0] == "日付,稼働時間(H),作業内容")
         #expect(lines[1] == "2025-01-10,7.50,設計")

@@ -86,7 +86,7 @@ struct ReportAggregatorTests {
                            notes: [])
         let totals = ReportAggregator.noteTotals(logs: [log1, log2], in: noteRange, calendar: TestSupport.utcCalendar)
         #expect(totals.count == 1)
-        #expect(totals[0].note == "(未分類)")
+        #expect(totals[0].note == nil)
         #expect(totals[0].seconds == 7200)
     }
 

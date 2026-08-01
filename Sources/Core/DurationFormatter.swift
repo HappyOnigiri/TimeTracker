@@ -2,14 +2,16 @@ import Foundation
 
 enum DurationFormatter {
     /// 秒数を "1時間23分" 形式に整形する。
-    static func string(from seconds: TimeInterval) -> String {
+    static func string(from seconds: TimeInterval, locale: Locale = .current) -> String {
         let total = Int(seconds.rounded())
         let hours = total / 3600
         let minutes = (total % 3600) / 60
         if hours > 0 {
-            return "\(hours)時間\(minutes)分"
+            let format = L10n.string("duration.hours_minutes", locale: locale)
+            return String(format: format, locale: locale, hours, minutes)
         }
-        return "\(minutes)分"
+        let format = L10n.string("duration.minutes", locale: locale)
+        return String(format: format, locale: locale, minutes)
     }
 
     /// 経過時間を時計形式に整形する。1 時間以上は "1:02:03"、未満は "02:03"。

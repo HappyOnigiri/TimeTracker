@@ -40,6 +40,36 @@ enum ScreenshotSampleData {
         Entry(projectIndex: 2, day: 27, startHour: 14, startMinute: 15, durationMinutes: 90, notes: ["定例ミーティング"])
     ]
 
+    static func projects(for language: AppLanguage) -> [(name: String, colorHex: String)] {
+        guard language.resolved() == .english else { return projects }
+        return [
+            (name: "Website Redesign", colorHex: "#4E9BFF"),
+            (name: "Mobile App", colorHex: "#FF8A4C"),
+            (name: "Operations & Support", colorHex: "#56B37F")
+        ]
+    }
+
+    static func entries(for language: AppLanguage) -> [Entry] {
+        guard language.resolved() == .english else { return entries }
+        let translations = [
+            "画面設計": "UI Design",
+            "実装": "Implementation",
+            "問い合わせ対応": "Customer Support",
+            "定例ミーティング": "Weekly Meeting",
+            "レビュー": "Review"
+        ]
+        return entries.map { entry in
+            Entry(
+                projectIndex: entry.projectIndex,
+                day: entry.day,
+                startHour: entry.startHour,
+                startMinute: entry.startMinute,
+                durationMinutes: entry.durationMinutes,
+                notes: entry.notes.map { translations[$0] ?? $0 }
+            )
+        }
+    }
+
     nonisolated static func sampleMonth(containing now: Date, calendar: Calendar = .current) -> Date {
         let currentMonthComponents = calendar.dateComponents([.year, .month], from: now)
         let currentMonth = calendar.date(from: currentMonthComponents) ?? calendar.startOfDay(for: now)
@@ -57,17 +87,20 @@ enum ScreenshotSampleData {
     static func replaceAll(
         in context: ModelContext,
         now: Date = Date(),
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        language: AppLanguage = .system.resolved()
     ) throws {
         try removeExistingData(from: context)
 
-        let models = projects.enumerated().map { index, item in
+        let localizedProjects = projects(for: language)
+        let localizedEntries = entries(for: language)
+        let models = localizedProjects.enumerated().map { index, item in
             Project(name: item.name, colorHex: item.colorHex, sortOrder: index)
         }
         models.forEach(context.insert)
 
         let month = sampleMonth(containing: now, calendar: calendar)
-        for entry in entries {
+        for entry in localizedEntries {
             guard let startDate = calendar.date(
                 bySettingHour: entry.startHour,
                 minute: entry.startMinute,

@@ -24,4 +24,20 @@ struct ReadmeScreenshotTests {
         #expect(logs.allSatisfy { $0.endDate != nil })
         #expect(logs.allSatisfy { TestSupport.utcCalendar.component(.month, from: $0.startDate) == 7 })
     }
+
+    @Test("英語のサンプルデータを生成できる")
+    func englishSampleDataIsAvailable() throws {
+        let context = try TestSupport.makeContext()
+        try ScreenshotSampleData.replaceAll(
+            in: context,
+            now: TestSupport.date(2026, 8, 1, 12),
+            calendar: TestSupport.utcCalendar,
+            language: .english
+        )
+
+        let projects = try context.fetch(FetchDescriptor<Project>())
+        let logs = try context.fetch(FetchDescriptor<TimeLog>())
+        #expect(projects.contains { $0.name == "Website Redesign" })
+        #expect(logs.contains { $0.notes.contains("Implementation") })
+    }
 }

@@ -13,7 +13,7 @@ extension RecordsView {
                 .frame(width: 10, height: 10)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(log.project?.name ?? "（不明）")
+                Text(log.project?.name ?? L10n.string("（不明）", locale: locale))
                     .lineLimit(1)
                 if !log.notes.isEmpty {
                     Text(log.notes.joined(separator: ", "))
@@ -55,7 +55,7 @@ extension RecordsView {
                     referenceDate: log.endDate ?? log.startDate
                 )
 
-                Text(DurationFormatter.string(from: log.duration))
+                Text(DurationFormatter.string(from: log.duration, locale: locale))
                     .font(.callout.monospacedDigit())
                     .foregroundStyle(.secondary)
                     .frame(minWidth: 70, alignment: .trailing)

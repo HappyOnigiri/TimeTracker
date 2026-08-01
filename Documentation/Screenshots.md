@@ -8,7 +8,7 @@ make sample-install
 
 インストール先は `/Applications/TimeTracker Sample.app` です。通常版の `TimeTracker.app` は変更しません。
 
-README 用のダッシュボード画像は、アプリやウィンドウを開かずに生成できます。
+README 用の英語・日本語ダッシュボード画像は、アプリやウィンドウを開かずに生成できます。
 
 ```sh
 make screenshots
@@ -16,6 +16,12 @@ make screenshots
 
 生成先は次のファイルです。
 
-- `Documentation/Images/dashboard.png`
+- `Documentation/Images/en/dashboard.png`
+- `Documentation/Images/ja/dashboard.png`
 
-`Documentation/Images/menu-bar.png` は、macOS のメニューバーを含めて手動で撮影した画像です。`make screenshots` では変更されません。
+メニューバー画像は、macOS のメニューバーを含めて手動で撮影します。Sample アプリの設定で表示言語を切り替え、再起動するとサンプルデータも選択言語に切り替わります。
+
+- `Documentation/Images/en/menu-bar.png`
+- `Documentation/Images/ja/menu-bar.png`
+
+これらは `make screenshots` では変更されません。更新する場合は、Sample アプリを対象言語で表示して撮影してください。

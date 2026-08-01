@@ -15,20 +15,20 @@ extension RecordsView {
     }
 
     /// 「2026年6月」の日本式月ラベル。
-    static func monthLabel(for date: Date) -> String {
+    static func monthLabel(for date: Date, locale: Locale = .current) -> String {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "ja_JP")
-        formatter.dateFormat = "yyyy年M月"
+        formatter.locale = locale
+        formatter.setLocalizedDateFormatFromTemplate("yMMMM")
         return formatter.string(from: date)
     }
 
     /// 「6月15日(日)」の日本式日付ラベル。
-    static func dayLabel(for date: Date) -> String {
+    static func dayLabel(for date: Date, locale: Locale = .current) -> String {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "ja_JP")
-        formatter.dateFormat = "M月d日(E)"
+        formatter.locale = locale
+        formatter.setLocalizedDateFormatFromTemplate("MMMEd")
         return formatter.string(from: date)
     }
 }

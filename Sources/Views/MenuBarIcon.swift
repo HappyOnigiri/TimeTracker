@@ -13,15 +13,22 @@ enum MenuBarIcon {
     private static let symbolPointSize: CGFloat = 14
 
     static func image(forColorHexes hexes: [String]) -> NSImage {
+        let locale = AppSettings().displayLanguage.locale
         guard !hexes.isEmpty else {
-            let image = NSImage(systemSymbolName: "stopwatch", accessibilityDescription: "全停止中") ?? NSImage()
+            let image = NSImage(
+                systemSymbolName: "stopwatch",
+                accessibilityDescription: L10n.string("全停止中", locale: locale)
+            ) ?? NSImage()
             image.isTemplate = true
             return image
         }
         let renderer = ImageRenderer(content: iconStack(hexes))
         renderer.scale = NSScreen.main?.backingScaleFactor ?? 2
         guard let image = renderer.nsImage else {
-            let fallback = NSImage(systemSymbolName: "stopwatch.fill", accessibilityDescription: "測定中") ?? NSImage()
+            let fallback = NSImage(
+                systemSymbolName: "stopwatch.fill",
+                accessibilityDescription: L10n.string("測定中", locale: locale)
+            ) ?? NSImage()
             return fallback
         }
         image.isTemplate = false

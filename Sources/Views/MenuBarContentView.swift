@@ -2,6 +2,7 @@ import SwiftData
 import SwiftUI
 
 struct MenuBarContentView: View {
+    @Environment(\.locale) private var locale
     @Environment(TimerEngine.self) private var engine
     @Environment(AppNavigation.self) private var navigation
     @Environment(\.openWindow) private var openWindow
@@ -101,12 +102,13 @@ struct MenuBarContentView: View {
         let startDate = now.addingTimeInterval(-TimeInterval(minutesAgo * 60))
         let result = engine.startRetroactively(project, at: startDate, now: now)
         guard result != .started else { return }
-        let message = result.retroactiveStartErrorMessage ?? "タイマーを開始できませんでした。"
+        let message = result.retroactiveStartErrorMessage(locale: locale)
+            ?? L10n.string("タイマーを開始できませんでした。", locale: locale)
         NSApp.keyWindow?.close()
         let alert = NSAlert()
-        alert.messageText = "開始できません"
+        alert.messageText = L10n.string("開始できません", locale: locale)
         alert.informativeText = message
-        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: L10n.string("OK", locale: locale))
         alert.alertStyle = .warning
         NSApp.activate()
         alert.runModal()
@@ -114,12 +116,12 @@ struct MenuBarContentView: View {
 }
 
 private struct MenuButton: View {
-    let title: String
+    let title: LocalizedStringResource
     let systemImage: String
     let action: () -> Void
     @State private var isHovered = false
 
-    init(_ title: String, systemImage: String, action: @escaping () -> Void) {
+    init(_ title: LocalizedStringResource, systemImage: String, action: @escaping () -> Void) {
         self.title = title
         self.systemImage = systemImage
         self.action = action

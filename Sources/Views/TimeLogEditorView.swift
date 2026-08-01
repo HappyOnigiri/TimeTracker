@@ -2,6 +2,7 @@ import SwiftData
 import SwiftUI
 
 struct TimeLogEditorView: View {
+    @Environment(\.locale) private var locale
     let log: TimeLog?
     let projects: [Project]
     let defaultDay: Date
@@ -43,7 +44,11 @@ struct TimeLogEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text(log == nil ? "記録を追加" : "記録を編集")
+            Text(
+                log == nil
+                    ? L10n.string("記録を追加", locale: locale)
+                    : L10n.string("記録を編集", locale: locale)
+            )
                 .font(.system(.title3, design: .rounded).bold())
 
             VStack(alignment: .leading, spacing: 8) {
@@ -91,7 +96,7 @@ struct TimeLogEditorView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
-                Text(DurationFormatter.string(from: endDate.timeIntervalSince(startDate)))
+                Text(DurationFormatter.string(from: endDate.timeIntervalSince(startDate), locale: locale))
                     .font(.callout.monospacedDigit())
                     .fontWeight(.medium)
             }

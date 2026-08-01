@@ -3,6 +3,7 @@ import SwiftUI
 
 /// 記録（TimeLog）を月単位・日付ごとに一覧表示し、インライン編集・追加・削除・複製を行う画面。
 struct RecordsView: View {
+    @Environment(\.locale) var locale
     @Environment(\.modelContext) var context
     @Query(sort: \TimeLog.startDate) private var logs: [TimeLog]
     @Query(sort: \Project.sortOrder) private var projects: [Project]
@@ -26,7 +27,7 @@ struct RecordsView: View {
     private enum ViewMode: String, CaseIterable, Identifiable {
         case list, timeline
         var id: String { rawValue }
-        var title: String {
+        var title: LocalizedStringResource {
             switch self {
             case .list: "リスト"
             case .timeline: "タイムライン"
@@ -104,7 +105,11 @@ struct RecordsView: View {
                 Label("記録を追加", systemImage: "plus")
             }
             .disabled(projects.isEmpty)
-            .help(projects.isEmpty ? "先にプロジェクトを作成してください" : "記録を追加")
+            .help(
+                projects.isEmpty
+                    ? L10n.string("先にプロジェクトを作成してください", locale: locale)
+                    : L10n.string("記録を追加", locale: locale)
+            )
 
             Button {
                 showingNoteRename = true
@@ -114,7 +119,11 @@ struct RecordsView: View {
             // 操作部は横に詰まっているため、アイコンのみにして help で補う。
             .labelStyle(.iconOnly)
             .disabled(!hasNoteCandidates)
-            .help(hasNoteCandidates ? "作業内容の文言を一括変更" : "変更できる作業内容がありません")
+            .help(
+                hasNoteCandidates
+                    ? L10n.string("作業内容の文言を一括変更", locale: locale)
+                    : L10n.string("変更できる作業内容がありません", locale: locale)
+            )
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -130,7 +139,7 @@ struct RecordsView: View {
             }
             .help("前の月")
 
-            Text(RecordsView.monthLabel(for: selectedMonth))
+            Text(RecordsView.monthLabel(for: selectedMonth, locale: locale))
                 .font(.headline)
                 .monospacedDigit()
                 .frame(minWidth: 110)
@@ -208,9 +217,9 @@ struct RecordsView: View {
                         }
                     } header: {
                         HStack {
-                            Text(RecordsView.dayLabel(for: group.day))
+                            Text(RecordsView.dayLabel(for: group.day, locale: locale))
                             Spacer()
-                            Text(DurationFormatter.string(from: group.totalSeconds))
+                            Text(DurationFormatter.string(from: group.totalSeconds, locale: locale))
                                 .foregroundStyle(.secondary)
                         }
                     }
