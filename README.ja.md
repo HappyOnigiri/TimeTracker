@@ -27,13 +27,19 @@ macOS のメニューバーから、プロジェクトごとの作業時間を�
 
 ## インストール
 
-Xcode と XcodeGen が必要です。XcodeGen は Homebrew でインストールできます。
+[最新のリリース](https://github.com/HappyOnigiri/TimeTracker/releases/latest)から `TimeTracker-vX.Y.Z.zip` をダウンロードして展開し、`TimeTracker.app` を `/Applications` に移動してください。
+
+このアプリは ad-hoc 署名を使用しており、Apple の公証を受けていません。初回起動時は開発元を確認できないため、macOS によって起動を止められる場合があります。一度アプリを開こうとしたあと、**システム設定 > プライバシーとセキュリティ**を開き、「セキュリティ」までスクロールして**このまま開く**をクリックしてください。詳しくは [Apple の「未確認の開発元からの Mac アプリを開く」](https://support.apple.com/ja-jp/guide/mac-help/mh40616/mac)を参照してください。
+
+### ソースからビルド
+
+ソースからのビルドには Xcode と XcodeGen が必要です。XcodeGen は Homebrew でインストールできます。
 
 ```sh
 brew install xcodegen
 ```
 
-リポジトリを取得し、アプリを `/Applications` に配置します。
+リポジトリを取得し、アプリをビルドして `/Applications` に配置します。
 
 ```sh
 git clone https://github.com/HappyOnigiri/TimeTracker.git
