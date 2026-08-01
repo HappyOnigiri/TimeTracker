@@ -1,6 +1,6 @@
 # TimeTracker
 
-[English](README.md)
+[English](README.md) | [简体中文](README.zh-CN.md)
 
 macOS のメニューバーから、プロジェクトごとの作業時間を記録するタイムトラッカーです。
 
