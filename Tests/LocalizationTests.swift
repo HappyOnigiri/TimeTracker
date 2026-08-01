@@ -29,6 +29,16 @@ struct LocalizationTests {
         #expect(L10n.string("保存", locale: Locale(identifier: "zh-Hans")) == "保存")
     }
 
+    @Test("言語名は現在の表示言語によらず自称表記になる")
+    func displaysLanguageAutonyms() {
+        for identifier in ["en", "ja", "zh-Hans"] {
+            let locale = Locale(identifier: identifier)
+            #expect(AppLanguage.english.displayName(locale: locale) == "English")
+            #expect(AppLanguage.japanese.displayName(locale: locale) == "日本語")
+            #expect(AppLanguage.simplifiedChinese.displayName(locale: locale) == "简体中文")
+        }
+    }
+
     @Test("経過時間を英語と日本語で整形する")
     func formatsLocalizedDurations() {
         #expect(DurationFormatter.string(from: 4_980, locale: Locale(identifier: "en")) == "1 hr 23 min")

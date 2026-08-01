@@ -25,17 +25,17 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         }
     }
 
-    /// 言語 Picker に表示する、現在の UI 言語でローカライズされた名前。
+    /// 言語 Picker に表示する名前。言語名は切り替え後も識別できるよう自称表記で固定する。
     func displayName(locale: Locale) -> String {
         switch self {
         case .system:
             L10n.string("自動（システム設定）", locale: locale)
         case .english:
-            L10n.string("英語", locale: locale)
+            "English"
         case .japanese:
-            L10n.string("日本語", locale: locale)
+            "日本語"
         case .simplifiedChinese:
-            L10n.string("中国語", locale: locale)
+            "简体中文"
         }
     }
 
