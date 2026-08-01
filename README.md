@@ -8,7 +8,7 @@ TimeTracker is a macOS menu bar app for tracking time by project.
 
 <img src="Documentation/Images/en/dashboard.png" alt="Dashboard showing tracked time for the month" width="720">
 
-<img src="Documentation/Images/en/menu-bar.png" alt="Menu bar window for selecting a project and starting a timer" width="640">
+<img src="Documentation/Images/en/menu-bar.png" alt="Menu bar window for selecting a project and starting a timer" width="378">
 
 - macOS 14 or later
 - All data is stored locally
