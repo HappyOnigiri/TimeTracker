@@ -27,13 +27,19 @@ Your records stay on your Mac and are never sent elsewhere. Idle detection does 
 
 ## Installation
 
-Xcode and XcodeGen are required. Install XcodeGen with Homebrew:
+Download `TimeTracker-vX.Y.Z.zip` from the [latest release](https://github.com/HappyOnigiri/TimeTracker/releases/latest), extract it, and move `TimeTracker.app` to `/Applications`.
+
+The app uses an ad-hoc signature and is not notarized by Apple. The first time you open it, macOS may block it because the developer cannot be verified. After trying to open the app, go to **System Settings > Privacy & Security**, scroll down to Security, and click **Open Anyway**. See [Apple's instructions for opening an app from an unknown developer](https://support.apple.com/guide/mac-help/mh40616/mac).
+
+### Build from source
+
+Building from source requires Xcode and XcodeGen. Install XcodeGen with Homebrew:
 
 ```sh
 brew install xcodegen
 ```
 
-Clone the repository and install the app in `/Applications`:
+Clone the repository and build the app in `/Applications`:
 
 ```sh
 git clone https://github.com/HappyOnigiri/TimeTracker.git
