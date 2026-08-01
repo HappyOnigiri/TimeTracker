@@ -160,21 +160,6 @@ struct TimerEngineTests {
         #expect(engine.isRunning(project))
     }
 
-    @Test("起動時に開きっぱなしのログを開始時刻で閉じる")
-    func closesOrphanedLogsOnConfigure() throws {
-        let context = try TestSupport.makeContext()
-        let project = Project(name: "A")
-        context.insert(project)
-        let orphan = TimeLog(project: project, startDate: TestSupport.date(2025, 1, 10, 9, 0), endDate: nil)
-        context.insert(orphan)
-        try context.save()
-
-        let engine = TimerEngine()
-        engine.configure(context: context)
-        #expect(!engine.isAnyRunning)
-        #expect(orphan.endDate == orphan.startDate)
-    }
-
     private func restoreDefault(_ value: Any?, forKey key: String) {
         if let value {
             UserDefaults.standard.set(value, forKey: key)

@@ -32,6 +32,7 @@ final class TimerEngine {
     @ObservationIgnored private var context: ModelContext?
     @ObservationIgnored private var settings = AppSettings()
     @ObservationIgnored private var idleTimer: Timer?
+    @ObservationIgnored private var terminationObserver: NSObjectProtocol?
 
     /// アイドル判定の監視間隔（秒）。
     private let idlePollInterval: TimeInterval = 5
@@ -39,13 +40,14 @@ final class TimerEngine {
     var isAnyRunning: Bool { !runningProjectIDs.isEmpty }
 
     /// View 層から ModelContext を受け取って初期化する。
-    /// 前回セッションでクラッシュ等により開きっぱなしのログがあれば破棄する。
+    /// 前回セッションでクラッシュ等により開きっぱなしのログがあれば閉じる。
     func configure(context: ModelContext) {
         guard self.context == nil else { return }
         self.context = context
         closeOrphanedLogs()
         refreshRunningState()
         startIdleMonitoring()
+        observeTermination()
     }
 
     func isRunning(_ project: Project) -> Bool {
@@ -121,6 +123,7 @@ final class TimerEngine {
     }
 
     private func idleTimerFired() {
+        recordHeartbeat()
         refrontIdleAlertIfNeeded()
         checkIdle()
     }
@@ -218,6 +221,33 @@ final class TimerEngine {
         workNotePanel = nil
     }
 
+    // MARK: - 異常終了への備え
+
+    /// アプリ終了時に計測中のログを終了時刻で閉じる。
+    ///
+    /// 閉じずに終了すると開きっぱなしのログが残り、次回起動時に `closeOrphanedLogs()`
+    /// へ回ってしまう。終了処理中はパネルを出せないため作業内容の入力は求めない。
+    private func observeTermination() {
+        guard terminationObserver == nil else { return }
+        terminationObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            // 終了処理中は Task のスケジュールが実行される保証がないため同期的に停止する。
+            MainActor.assumeIsolated {
+                self?.stopAll()
+            }
+        }
+    }
+
+    /// 計測中は生存時刻を記録し続ける。
+    /// クラッシュ・強制終了・電源断で終了処理が走らなくても、
+    /// 次回起動時にここまでの計測を復元できる。
+    private func recordHeartbeat(now: Date = Date()) {
+        guard isAnyRunning else { return }
+        settings.recordHeartbeat(now)
+    }
+
     // MARK: - 内部処理
 
     private func fetchOpenLogs() -> [TimeLog] {
@@ -228,12 +258,17 @@ final class TimerEngine {
         return all.filter { $0.endDate == nil }
     }
 
-    /// 前回セッションの開きっぱなしのログを開始時刻で閉じる（時間を捏造しない）。
-    private func closeOrphanedLogs() {
+    /// 前回セッションの開きっぱなしのログを、最後に生存を記録した時刻で閉じる。
+    ///
+    /// heartbeat がなければ開始時刻で閉じる（時間を捏造しない）。
+    /// heartbeat は最大 `idlePollInterval` 秒ぶん古いだけなので、
+    /// クラッシュしても計測はほぼ失われない。
+    private func closeOrphanedLogs(now: Date = Date()) {
         let openLogs = fetchOpenLogs()
         guard !openLogs.isEmpty else { return }
+        let heartbeat = settings.lastHeartbeat
         for log in openLogs {
-            log.endDate = log.startDate
+            log.endDate = min(now, max(heartbeat ?? log.startDate, log.startDate))
         }
         save()
     }

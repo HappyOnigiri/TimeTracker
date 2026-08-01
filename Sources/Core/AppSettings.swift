@@ -13,6 +13,7 @@ enum AppSettingsKey {
     static let promptForWorkNoteOnStop = "promptForWorkNoteOnStop"
     static let dimBlocksWithoutNotes = "dimBlocksWithoutNotes"
     static let displayLanguage = "displayLanguage"
+    static let lastHeartbeat = "lastHeartbeat"
 }
 
 enum AppSettingsDefault {
@@ -78,6 +79,19 @@ struct AppSettings {
 
     var dimBlocksWithoutNotes: Bool {
         defaults.bool(forKey: AppSettingsKey.dimBlocksWithoutNotes)
+    }
+
+    /// 計測中のアプリが最後に生存を記録した時刻。未記録なら nil。
+    ///
+    /// クラッシュや強制終了で終了処理が走らなかったとき、次回起動時に
+    /// 「どこまで計測できていたか」を復元するために使う。
+    var lastHeartbeat: Date? {
+        let value = defaults.double(forKey: AppSettingsKey.lastHeartbeat)
+        return value > 0 ? Date(timeIntervalSinceReferenceDate: value) : nil
+    }
+
+    func recordHeartbeat(_ date: Date) {
+        defaults.set(date.timeIntervalSinceReferenceDate, forKey: AppSettingsKey.lastHeartbeat)
     }
 
     var displayLanguage: AppLanguage {
