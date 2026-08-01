@@ -14,10 +14,14 @@ enum TestSupport {
         return try! ModelContainer(for: Project.self, TimeLog.self, ActiveSession.self, configurations: config)
     }()
 
-    /// 既存データを消去した、クリーンなインメモリ ModelContext を返す。
+    /// 既存データを消去した、新しいインメモリ ModelContext を返す。
+    ///
+    /// `mainContext` をテスト間で再利用すると、削除済みモデルの登録状態が残り、
+    /// 関係をたどった際に SwiftData の full future backing data でトラップすることがある。
+    /// Container だけを共有し、Context はテストごとに作り直す。
     @MainActor
     static func makeContext() throws -> ModelContext {
-        let context = sharedContainer.mainContext
+        let context = ModelContext(sharedContainer)
         // バッチ削除は関係制約に抵触するため、個別に削除する。
         for log in (try? context.fetch(FetchDescriptor<TimeLog>())) ?? [] {
             context.delete(log)
