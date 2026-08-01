@@ -24,4 +24,4 @@ make screenshots
 - `Documentation/Images/en/menu-bar.png`
 - `Documentation/Images/ja/menu-bar.png`
 
-これらは `make screenshots` では変更されません。英語版は英語表示で撮影した画像へ差し替えてください。
+これらは `make screenshots` では変更されません。更新する場合は、Sample アプリを対象言語で表示して撮影してください。
