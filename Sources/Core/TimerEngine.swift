@@ -258,7 +258,14 @@ final class TimerEngine {
     }
 
     private func save() {
-        try? context?.save()
+        guard let context else { return }
+        do {
+            try context.save()
+        } catch {
+            // 保存失敗を握り潰すと、計測が記録されないまま UI 上は正常に見えてしまう。
+            AppLog.persistence.error("計測ログの保存に失敗しました: \(error, privacy: .public)")
+            assertionFailure("計測ログの保存に失敗しました: \(error)")
+        }
     }
 }
 
