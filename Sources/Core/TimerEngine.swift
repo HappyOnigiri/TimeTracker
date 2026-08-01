@@ -129,7 +129,7 @@ final class TimerEngine {
         guard let panel = idleAlertPanel else { return }
         let idleSeconds = IdleDetector.secondsSinceLastInput()
         guard idleSeconds < settings.idleThresholdSeconds else { return }
-        centerPanel(panel)
+        FloatingPanel.center(panel)
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate()
     }
@@ -303,7 +303,7 @@ extension TimerEngine {
     func showRetroactiveStartPanel(for project: Project) {
         retroactiveStartPanel?.close()
         let locale = settings.displayLanguage.locale
-        let panel = makePanel(
+        let panel = FloatingPanel.make(
             size: NSSize(width: 380, height: 300),
             title: L10n.string("開始時刻を指定", locale: locale)
         )
@@ -313,7 +313,7 @@ extension TimerEngine {
         )
         panel.contentView = NSHostingView(rootView: view.environment(\.locale, locale))
         retroactiveStartPanel = panel
-        presentPanel(panel)
+        FloatingPanel.present(panel)
     }
 
     func dismissRetroactiveStartPanel() {
@@ -325,7 +325,7 @@ extension TimerEngine {
         workNotePanel?.close()
         guard let context else { return }
         let locale = settings.displayLanguage.locale
-        let panel = makePanel(
+        let panel = FloatingPanel.make(
             size: NSSize(width: 480, height: 350),
             title: L10n.string("作業内容を記録", locale: locale),
             styleMask: [.titled, .resizable]
@@ -335,7 +335,7 @@ extension TimerEngine {
             .modelContainer(context.container)
         panel.contentView = NSHostingView(rootView: view)
         workNotePanel = panel
-        presentPanel(panel)
+        FloatingPanel.present(panel)
     }
 
     fileprivate func showIdleStopAlert() {
@@ -343,7 +343,7 @@ extension TimerEngine {
         guard let context else { return }
         let locale = settings.displayLanguage.locale
         let panelHeight: CGFloat = settings.promptForWorkNoteOnStop ? 420 : 280
-        let panel = makePanel(
+        let panel = FloatingPanel.make(
             size: NSSize(width: 480, height: panelHeight),
             title: L10n.string("タイマー自動停止", locale: locale), level: .screenSaver,
             styleMask: [.titled, .resizable]
@@ -353,42 +353,6 @@ extension TimerEngine {
             .modelContainer(context.container)
         panel.contentView = NSHostingView(rootView: view)
         idleAlertPanel = panel
-        presentPanel(panel)
-    }
-
-    private func makePanel(
-        size: NSSize, title: String,
-        level: NSWindow.Level = .floating,
-        styleMask: NSWindow.StyleMask = [.titled]
-    ) -> NSPanel {
-        let panel = NSPanel(
-            contentRect: NSRect(origin: .zero, size: size),
-            styleMask: styleMask, backing: .buffered, defer: false
-        )
-        panel.title = title
-        panel.level = level
-        panel.isReleasedWhenClosed = false
-        panel.hidesOnDeactivate = false
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        centerPanel(panel)
-        return panel
-    }
-
-    private func centerPanel(_ panel: NSPanel) {
-        let mouse = NSEvent.mouseLocation
-        let screen = NSScreen.screens.first {
-            NSMouseInRect(mouse, $0.frame, false)
-        } ?? NSScreen.main
-        guard let visibleFrame = screen?.visibleFrame else { return }
-        let panelSize = panel.frame.size
-        panel.setFrameOrigin(NSPoint(
-            x: visibleFrame.midX - panelSize.width / 2,
-            y: visibleFrame.midY - panelSize.height / 2
-        ))
-    }
-
-    private func presentPanel(_ panel: NSPanel) {
-        panel.makeKeyAndOrderFront(nil)
-        NSApp.activate()
+        FloatingPanel.present(panel)
     }
 }
