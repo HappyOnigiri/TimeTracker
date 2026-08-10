@@ -23,14 +23,14 @@ final class TimerEngine {
     /// アイドル自動停止で停止されたプロジェクト情報。通知表示に使う。
     private(set) var idleStoppedProjectNames: [String] = []
     @ObservationIgnored private var idleStoppedProjectIDs: Set<UUID> = []
-    @ObservationIgnored private var idleAlertPanel: NSPanel?
+    @ObservationIgnored var idleAlertPanel: NSPanel?
 
     private(set) var pendingNoteLogs: [TimeLog] = []
-    @ObservationIgnored private var workNotePanel: NSPanel?
-    @ObservationIgnored private var retroactiveStartPanel: NSPanel?
+    @ObservationIgnored var workNotePanel: NSPanel?
+    @ObservationIgnored var retroactiveStartPanel: NSPanel?
 
-    @ObservationIgnored private var context: ModelContext?
-    @ObservationIgnored private var settings = AppSettings()
+    @ObservationIgnored var context: ModelContext?
+    @ObservationIgnored var settings = AppSettings()
     @ObservationIgnored private var idleTimer: Timer?
     @ObservationIgnored private var terminationObserver: NSObjectProtocol?
 
@@ -46,8 +46,11 @@ final class TimerEngine {
         self.context = context
         closeOrphanedLogs()
         refreshRunningState()
-        startIdleMonitoring()
-        observeTermination()
+        // テストホストでは複数の短命な Context を切り替えるため、RunLoop タイマーを残さない。
+        if ProcessInfo.processInfo.environment["XCTestBundlePath"] == nil {
+            startIdleMonitoring()
+            observeTermination()
+        }
     }
 
     func isRunning(_ project: Project) -> Bool {
@@ -201,11 +204,16 @@ final class TimerEngine {
     // MARK: - 作業内容プロンプト
 
     func saveWorkNotes(_ notes: [String]) {
-        let trimmed = notes.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
+        guard let context else { return }
+        let trimmed = WorkNoteCatalog.normalizedNotes(notes)
+        var projectsByID: [UUID: Project] = [:]
         for log in pendingNoteLogs {
             log.notes = trimmed
+            if let project = log.project {
+                projectsByID[project.id] = project
+            }
         }
+        WorkNoteCatalog.recordUsage(trimmed, for: Array(projectsByID.values), in: context)
         if !pendingNoteLogs.isEmpty { save() }
         pendingNoteLogs = []
         dismissWorkNotePrompt()
@@ -336,65 +344,5 @@ extension TimerEngine {
         save()
         refreshRunningState()
         return .started
-    }
-}
-
-// MARK: - パネル表示
-
-extension TimerEngine {
-    func showRetroactiveStartPanel(for project: Project) {
-        retroactiveStartPanel?.close()
-        let locale = settings.displayLanguage.locale
-        let panel = FloatingPanel.make(
-            size: NSSize(width: 380, height: 300),
-            title: L10n.string("開始時刻を指定", locale: locale)
-        )
-        let view = RetroactiveStartView(
-            project: project, engine: self,
-            onDismiss: { [weak self] in self?.dismissRetroactiveStartPanel() }
-        )
-        panel.contentView = NSHostingView(rootView: view.environment(\.locale, locale))
-        retroactiveStartPanel = panel
-        FloatingPanel.present(panel)
-    }
-
-    func dismissRetroactiveStartPanel() {
-        retroactiveStartPanel?.close()
-        retroactiveStartPanel = nil
-    }
-
-    fileprivate func showWorkNotePrompt() {
-        workNotePanel?.close()
-        guard let context else { return }
-        let locale = settings.displayLanguage.locale
-        let panel = FloatingPanel.make(
-            size: NSSize(width: 480, height: 350),
-            title: L10n.string("作業内容を記録", locale: locale),
-            styleMask: [.titled, .resizable]
-        )
-        let view = WorkNotePromptView(engine: self)
-            .environment(\.locale, locale)
-            .modelContainer(context.container)
-        panel.contentView = NSHostingView(rootView: view)
-        workNotePanel = panel
-        FloatingPanel.present(panel)
-    }
-
-    fileprivate func showIdleStopAlert() {
-        idleAlertPanel?.close()
-        guard let context else { return }
-        let locale = settings.displayLanguage.locale
-        let panelHeight: CGFloat = settings.promptForWorkNoteOnStop ? 420 : 280
-        let panel = FloatingPanel.make(
-            size: NSSize(width: 480, height: panelHeight),
-            title: L10n.string("タイマー自動停止", locale: locale), level: .screenSaver,
-            styleMask: [.titled, .resizable]
-        )
-        let view = IdleStopAlertView(engine: self)
-            .environment(\.locale, locale)
-            .modelContainer(context.container)
-        panel.contentView = NSHostingView(rootView: view)
-        idleAlertPanel = panel
-        FloatingPanel.present(panel)
     }
 }

@@ -2,10 +2,13 @@ import SwiftUI
 
 struct WorkNoteInputView: View {
     @Binding var notes: [String]
-    let suggestions: [String]
+    let workNotes: [WorkNote]
+    let logs: [TimeLog]
+    let projectIDs: Set<UUID>
 
     @State private var inputText = ""
     @State private var selectedSuggestion: String?
+    @State private var showingAll = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -27,6 +30,14 @@ struct WorkNoteInputView: View {
                         selectedSuggestion = nil
                     }
                 }
+            }
+
+            if !showingAll && hasHiddenSuggestions {
+                Button("すべて表示") {
+                    showingAll = true
+                }
+                .buttonStyle(.link)
+                .controlSize(.small)
             }
 
             HStack {
@@ -60,12 +71,33 @@ struct WorkNoteInputView: View {
     }
 
     private var availableSuggestions: [String] {
-        suggestions.filter { !notes.contains($0) }
+        suggestions(showAll: showingAll).filter { !selectedKeys.contains(WorkNoteRenaming.key($0)) }
+    }
+
+    private var hasHiddenSuggestions: Bool {
+        let filteredKeys = Set(suggestions(showAll: false).map(WorkNoteRenaming.key))
+        return suggestions(showAll: true).contains { suggestion in
+            let key = WorkNoteRenaming.key(suggestion)
+            return !selectedKeys.contains(key) && !filteredKeys.contains(key)
+        }
+    }
+
+    private var selectedKeys: Set<String> {
+        Set(notes.map(WorkNoteRenaming.key))
+    }
+
+    private func suggestions(showAll: Bool) -> [String] {
+        WorkNoteSuggestions.candidates(
+            from: workNotes,
+            logs: logs,
+            projectIDs: projectIDs,
+            showAll: showAll
+        )
     }
 
     private func addCurrentInput() {
         let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, !notes.contains(trimmed) else { return }
+        guard !trimmed.isEmpty, !selectedKeys.contains(WorkNoteRenaming.key(trimmed)) else { return }
         notes.append(trimmed)
         inputText = ""
     }

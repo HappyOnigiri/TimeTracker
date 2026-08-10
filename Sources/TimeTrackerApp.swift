@@ -31,7 +31,7 @@ struct TimeTrackerApp: App {
 
         do {
             container = try ModelContainer(
-                for: Project.self, TimeLog.self, ActiveSession.self,
+                for: Project.self, TimeLog.self, WorkNote.self, ActiveSession.self,
                 configurations: ModelConfiguration(isStoredInMemoryOnly: isTestHost)
             )
 #if SCREENSHOT_BUILD
@@ -40,6 +40,7 @@ struct TimeTrackerApp: App {
                 language: AppSettings().displayLanguage.resolved()
             )
 #endif
+            try WorkNoteCatalog.bootstrap(in: container.mainContext)
         } catch {
             fatalError("ModelContainer の生成に失敗しました: \(error)")
         }

@@ -9,6 +9,7 @@ struct IdleStopAlertView: View {
     private var promptForWorkNoteOnStop = AppSettingsDefault.promptForWorkNoteOnStop
 
     @Query(sort: \TimeLog.startDate) private var allLogs: [TimeLog]
+    @Query(sort: \WorkNote.text) private var workNotes: [WorkNote]
     @State private var notes: [String] = []
 
     var body: some View {
@@ -37,7 +38,9 @@ struct IdleStopAlertView: View {
             if promptForWorkNoteOnStop {
                 WorkNoteInputView(
                     notes: $notes,
-                    suggestions: WorkNoteSuggestions.candidates(from: allLogs)
+                    workNotes: workNotes,
+                    logs: allLogs,
+                    projectIDs: projectIDs
                 )
             }
 
@@ -68,5 +71,9 @@ struct IdleStopAlertView: View {
         } else {
             engine.skipWorkNotes()
         }
+    }
+
+    private var projectIDs: Set<UUID> {
+        Set(engine.pendingNoteLogs.compactMap { $0.project?.id })
     }
 }

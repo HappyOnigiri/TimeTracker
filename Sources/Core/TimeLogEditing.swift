@@ -6,7 +6,9 @@ import SwiftData
 enum TimeLogEditing {
     /// 新規記録を追加する。
     static func add(project: Project, start: Date, end: Date, notes: [String] = [], in context: ModelContext) {
-        context.insert(TimeLog(project: project, startDate: start, endDate: end, notes: notes))
+        let normalized = WorkNoteCatalog.normalizedNotes(notes)
+        context.insert(TimeLog(project: project, startDate: start, endDate: end, notes: normalized))
+        WorkNoteCatalog.recordUsage(normalized, for: project, in: context)
         try? context.save()
     }
 
@@ -16,7 +18,9 @@ enum TimeLogEditing {
         log.project = project
         log.startDate = start
         log.endDate = end
-        log.notes = notes
+        let normalized = WorkNoteCatalog.normalizedNotes(notes)
+        log.notes = normalized
+        WorkNoteCatalog.recordUsage(normalized, for: project, in: context)
         try? context.save()
     }
 
@@ -30,6 +34,7 @@ enum TimeLogEditing {
     /// 同プロジェクト・同時間帯で記録を複製する。
     static func duplicate(_ log: TimeLog, in context: ModelContext) {
         context.insert(TimeLog(project: log.project, startDate: log.startDate, endDate: log.endDate, notes: log.notes))
+        WorkNoteCatalog.recordUsage(log.notes, for: log.project, in: context)
         try? context.save()
     }
 

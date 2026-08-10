@@ -16,6 +16,10 @@ final class Project {
     @Relationship(deleteRule: .cascade, inverse: \TimeLog.project)
     var logs: [TimeLog] = []
 
+    /// このプロジェクトで使う作業内容。プロジェクト削除時は作業内容側の関連だけを解除する。
+    @Relationship(deleteRule: .nullify, inverse: \WorkNote.projects)
+    var workNotes: [WorkNote] = []
+
     init(name: String, colorHex: String = "#4E9BFF", sortOrder: Int = 0) {
         self.id = UUID()
         self.name = name
@@ -23,6 +27,7 @@ final class Project {
         self.createdAt = Date()
         self.sortOrder = sortOrder
         self.logs = []
+        self.workNotes = []
     }
 
     /// 現在計測中（終了していないログが存在する）か。

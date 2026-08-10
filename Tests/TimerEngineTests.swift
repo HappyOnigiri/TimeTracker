@@ -53,6 +53,57 @@ struct TimerEngineTests {
         #expect(!engine.isAnyRunning)
     }
 
+    @Test("停止ログへの作業内容保存で対象プロジェクトを関連付ける")
+    func savingStoppedLogRecordsProjectUsage() throws {
+        let defaults = UserDefaults.standard
+        let savedPrompt = defaults.object(forKey: AppSettingsKey.promptForWorkNoteOnStop)
+        defer { restoreDefault(savedPrompt, forKey: AppSettingsKey.promptForWorkNoteOnStop) }
+        defaults.set(true, forKey: AppSettingsKey.promptForWorkNoteOnStop)
+        let context = try TestSupport.makeContext()
+        defer { TestSupport.clearWorkNoteRelationships(in: context) }
+        let project = Project(name: "A")
+        context.insert(project)
+        let engine = TimerEngine()
+        engine.configure(context: context)
+        engine.start(project, now: TestSupport.date(2025, 1, 1, 9))
+        engine.stop(project, now: TestSupport.date(2025, 1, 1, 10), promptForNotes: true)
+        let logs = try context.fetch(FetchDescriptor<TimeLog>())
+        engine.saveWorkNotes([" 実装 "])
+        #expect(logs[0].notes == ["実装"])
+        let item = try #require(context.fetch(FetchDescriptor<WorkNote>()).first)
+        #expect(item.text == "実装")
+        #expect(item.projects.map(\.id) == [project.id])
+    }
+
+    @Test("複数プロジェクトの停止ログを全対象プロジェクトへ関連付ける")
+    func savingMultipleStoppedLogsRecordsEveryProject() throws {
+        let defaults = UserDefaults.standard
+        let savedConcurrent = defaults.object(forKey: AppSettingsKey.allowConcurrentTracking)
+        let savedPrompt = defaults.object(forKey: AppSettingsKey.promptForWorkNoteOnStop)
+        defer {
+            restoreDefault(savedConcurrent, forKey: AppSettingsKey.allowConcurrentTracking)
+            restoreDefault(savedPrompt, forKey: AppSettingsKey.promptForWorkNoteOnStop)
+        }
+        defaults.set(true, forKey: AppSettingsKey.allowConcurrentTracking)
+        defaults.set(true, forKey: AppSettingsKey.promptForWorkNoteOnStop)
+        let context = try TestSupport.makeContext()
+        defer { TestSupport.clearWorkNoteRelationships(in: context) }
+        let projectA = Project(name: "A")
+        let projectB = Project(name: "B")
+        context.insert(projectA)
+        context.insert(projectB)
+        let engine = TimerEngine()
+        engine.configure(context: context)
+        engine.start(projectA, now: TestSupport.date(2025, 1, 1, 9))
+        engine.start(projectB, now: TestSupport.date(2025, 1, 1, 9))
+        engine.stopAll(now: TestSupport.date(2025, 1, 1, 10), promptForNotes: true)
+        let logs = try context.fetch(FetchDescriptor<TimeLog>())
+        engine.saveWorkNotes(["レビュー"])
+        let item = try #require(context.fetch(FetchDescriptor<WorkNote>()).first)
+        #expect(Set(item.projects.map(\.id)) == [projectA.id, projectB.id])
+        #expect(logs.allSatisfy { $0.notes == ["レビュー"] })
+    }
+
     @Test("同時測定オフでは通常開始時に現在時刻で他を停止する")
     func nonConcurrentStopsOthers() throws {
         let defaults = UserDefaults.standard

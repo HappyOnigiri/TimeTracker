@@ -5,6 +5,7 @@ struct WorkNotePromptView: View {
     @Environment(\.locale) private var locale
     let engine: TimerEngine
     @Query(sort: \TimeLog.startDate) private var allLogs: [TimeLog]
+    @Query(sort: \WorkNote.text) private var workNotes: [WorkNote]
     @State private var notes: [String] = []
 
     var body: some View {
@@ -20,7 +21,9 @@ struct WorkNotePromptView: View {
 
             WorkNoteInputView(
                 notes: $notes,
-                suggestions: WorkNoteSuggestions.candidates(from: allLogs)
+                workNotes: workNotes,
+                logs: allLogs,
+                projectIDs: projectIDs
             )
 
             HStack(spacing: 16) {
@@ -45,5 +48,9 @@ struct WorkNotePromptView: View {
 
     private var projectNames: [String] {
         Array(Set(engine.pendingNoteLogs.compactMap { $0.project?.name })).sorted()
+    }
+
+    private var projectIDs: Set<UUID> {
+        Set(engine.pendingNoteLogs.compactMap { $0.project?.id })
     }
 }

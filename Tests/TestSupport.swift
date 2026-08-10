@@ -11,7 +11,10 @@ enum TestSupport {
     private static let sharedContainer: ModelContainer = {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         // swiftlint:disable:next force_try
-        return try! ModelContainer(for: Project.self, TimeLog.self, ActiveSession.self, configurations: config)
+        return try! ModelContainer(
+            for: Project.self, TimeLog.self, WorkNote.self, ActiveSession.self,
+            configurations: config
+        )
     }()
 
     /// 既存データを消去した、新しいインメモリ ModelContext を返す。
@@ -23,17 +26,36 @@ enum TestSupport {
     static func makeContext() throws -> ModelContext {
         let context = ModelContext(sharedContainer)
         // バッチ削除は関係制約に抵触するため、個別に削除する。
-        for log in (try? context.fetch(FetchDescriptor<TimeLog>())) ?? [] {
-            context.delete(log)
+        let workNotes = (try? context.fetch(FetchDescriptor<WorkNote>())) ?? []
+        for note in workNotes {
+            note.projects = []
         }
+        try context.save()
+        for note in workNotes {
+            context.delete(note)
+        }
+        // 多対多の逆関連を確実に解除してから Project を削除する。
+        try context.save()
         for session in (try? context.fetch(FetchDescriptor<ActiveSession>())) ?? [] {
             context.delete(session)
+        }
+        for log in (try? context.fetch(FetchDescriptor<TimeLog>())) ?? [] {
+            context.delete(log)
         }
         for project in (try? context.fetch(FetchDescriptor<Project>())) ?? [] {
             context.delete(project)
         }
         try context.save()
         return context
+    }
+
+    /// 共有 Container 内の別 Context に多対多モデルの循環参照を残さないための後処理。
+    @MainActor
+    static func clearWorkNoteRelationships(in context: ModelContext) {
+        for note in (try? context.fetch(FetchDescriptor<WorkNote>())) ?? [] {
+            note.projects = []
+        }
+        try? context.save()
     }
 
     /// UTC 固定のカレンダー（日付境界の決定性のため）。

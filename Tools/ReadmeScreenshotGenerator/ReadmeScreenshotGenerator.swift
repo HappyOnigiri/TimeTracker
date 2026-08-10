@@ -20,6 +20,7 @@ struct ReadmeScreenshotGenerator {
         let container = try ModelContainer(
             for: Project.self,
             TimeLog.self,
+            WorkNote.self,
             ActiveSession.self,
             configurations: configuration
         )

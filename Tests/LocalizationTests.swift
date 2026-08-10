@@ -29,6 +29,18 @@ struct LocalizationTests {
         #expect(L10n.string("保存", locale: Locale(identifier: "zh-Hans")) == "保存")
     }
 
+    @Test("作業内容管理と同名統合の主要文言を3言語で取得できる")
+    func localizesWorkNoteManagement() {
+        let locales = ["en", "ja", "zh-Hans"].map(Locale.init(identifier:))
+        for locale in locales {
+            #expect(!L10n.string("作業内容を管理", locale: locale).isEmpty)
+            #expect(!L10n.string("紐づくプロジェクト", locale: locale).isEmpty)
+            #expect(!L10n.string("すべて表示", locale: locale).isEmpty)
+            #expect(!L10n.string("同名の作業内容へ統合しますか？", locale: locale).isEmpty)
+            #expect(!L10n.string("worknote.merge.confirmation", locale: locale).isEmpty)
+        }
+    }
+
     @Test("言語名は現在の表示言語によらず自称表記になる")
     func displaysLanguageAutonyms() {
         for identifier in ["en", "ja", "zh-Hans"] {
