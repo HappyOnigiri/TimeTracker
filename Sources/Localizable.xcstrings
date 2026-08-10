@@ -83,6 +83,7 @@
     "同名の作業内容へ統合しますか？" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Merge with the existing work note?"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"要合并到同名工作内容吗？"}}}},
     "対象の作業内容が見つかりません" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"The selected work note could not be found"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"找不到所选工作内容"}}}},
     "管理できる作業内容がありません" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"No work notes are available to manage"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"没有可管理的工作内容"}}}},
+    "管理する作業内容" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Work Note to Manage"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"要管理的工作内容"}}}},
     "対象の記録がありません" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"No matching records"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"没有匹配的记录"}}}},
     "展開中" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Expanded"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"已展开"}}}},
     "情報" : {"localizations":{"en":{"stringUnit":{"state":"translated","value":"About"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"关于"}}}},

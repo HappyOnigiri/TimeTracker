@@ -24,10 +24,10 @@ struct WorkNoteManagementView: View {
                 .font(.system(.title3, design: .rounded).bold())
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("変更する作業内容")
+                Text("管理する作業内容")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Picker("変更する作業内容", selection: $selectedID) {
+                Picker("管理する作業内容", selection: $selectedID) {
                     Text("選択してください").tag(UUID?.none)
                     ForEach(workNotes) { item in
                         Text(item.text).tag(UUID?.some(item.id))
