@@ -31,13 +31,29 @@ struct LocalizationTests {
 
     @Test("作業内容管理と同名統合の主要文言を3言語で取得できる")
     func localizesWorkNoteManagement() {
-        let locales = ["en", "ja", "zh-Hans"].map(Locale.init(identifier:))
-        for locale in locales {
-            #expect(!L10n.string("作業内容を管理", locale: locale).isEmpty)
-            #expect(!L10n.string("紐づくプロジェクト", locale: locale).isEmpty)
-            #expect(!L10n.string("すべて表示", locale: locale).isEmpty)
-            #expect(!L10n.string("同名の作業内容へ統合しますか？", locale: locale).isEmpty)
-            #expect(!L10n.string("worknote.merge.confirmation", locale: locale).isEmpty)
+        let expectations: [(String.LocalizationValue, String, String, String)] = [
+            ("作業内容を管理", "Manage Work Notes", "作業内容を管理", "管理工作内容"),
+            ("紐づくプロジェクト", "Linked Projects", "紐づくプロジェクト", "关联项目"),
+            ("すべて表示", "Show All", "すべて表示", "显示全部"),
+            (
+                "同名の作業内容へ統合しますか？",
+                "Merge with the existing work note?",
+                "同名の作業内容へ統合しますか？",
+                "要合并到同名工作内容吗？"
+            ),
+            (
+                "worknote.merge.confirmation",
+                "Merge “%1$@” into the existing “%2$@”. %3$d records will be updated, "
+                    + "and linked projects will be combined. This action cannot be undone.",
+                "「%1$@」を既存の「%2$@」へ統合します。%3$d 件の記録が置き換わり、"
+                    + "紐づくプロジェクトは和集合になります。この操作は取り消せません。",
+                "将“%1$@”合并到现有的“%2$@”。将更新 %3$d 条记录，并合并关联项目。此操作无法撤销。"
+            )
+        ]
+        for (key, english, japanese, chinese) in expectations {
+            #expect(L10n.string(key, locale: Locale(identifier: "en")) == english)
+            #expect(L10n.string(key, locale: Locale(identifier: "ja")) == japanese)
+            #expect(L10n.string(key, locale: Locale(identifier: "zh-Hans")) == chinese)
         }
     }
 
