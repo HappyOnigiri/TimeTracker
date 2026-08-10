@@ -12,7 +12,10 @@ enum WorkNoteSuggestions {
         calendar: Calendar = .current,
         limit: Int = 20
     ) -> [String] {
-        let latestDate = latestDates(in: logs)
+        let relevantLogs = showAll ? logs : logs.filter { log in
+            log.project.map { projectIDs.contains($0.id) } ?? false
+        }
+        let latestDate = latestDates(in: relevantLogs)
         let cutoff = calendar.date(byAdding: .month, value: -1, to: now) ?? .distantPast
         let filtered = workNotes.filter {
             shouldInclude($0, latestDate: latestDate, projectIDs: projectIDs, showAll: showAll, cutoff: cutoff)

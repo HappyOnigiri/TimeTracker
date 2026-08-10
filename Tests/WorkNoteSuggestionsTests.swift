@@ -35,6 +35,20 @@ struct WorkNoteSuggestionsTests {
         #expect(result == ["共有"])
     }
 
+    @Test("別プロジェクトでの最近の利用を現在プロジェクトの候補判定に使わない")
+    func ignoresRecentUsageFromOtherProject() {
+        let current = Project(name: "A")
+        let other = Project(name: "B")
+        let shared = WorkNote(text: "共有", projects: [current, other])
+        let logs = [
+            log(project: current, date: TestSupport.date(2025, 2, 20), note: "共有"),
+            log(project: other, date: TestSupport.date(2025, 3, 25), note: "共有")
+        ]
+
+        #expect(candidates([shared], logs: logs, projectIDs: [current.id]).isEmpty)
+        #expect(candidates([shared], logs: logs, projectIDs: [current.id], showAll: true) == ["共有"])
+    }
+
     @Test("境界日時以前と利用ログのない候補を通常表示から除外する")
     func excludesBoundaryAndUnusedItems() {
         let project = Project(name: "A")
