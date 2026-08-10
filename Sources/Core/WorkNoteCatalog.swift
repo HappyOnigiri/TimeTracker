@@ -12,13 +12,21 @@ enum WorkNoteCatalog {
         case emptyText
         case targetMissing
 
-        var errorDescription: String? {
+        private var localizationKey: String.LocalizationValue {
             switch self {
             case .emptyText:
-                L10n.string("作業内容を入力してください", locale: .current)
+                "作業内容を入力してください"
             case .targetMissing:
-                L10n.string("対象の作業内容が見つかりません", locale: .current)
+                "対象の作業内容が見つかりません"
             }
+        }
+
+        var errorDescription: String? {
+            localizedDescription(locale: .current)
+        }
+
+        func localizedDescription(locale: Locale) -> String {
+            L10n.string(localizationKey, locale: locale)
         }
     }
 

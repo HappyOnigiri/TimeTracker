@@ -179,7 +179,11 @@ struct WorkNoteManagementView: View {
             )
             dismiss()
         } catch {
-            errorMessage = error.localizedDescription
+            if let catalogError = error as? WorkNoteCatalog.CatalogError {
+                errorMessage = catalogError.localizedDescription(locale: locale)
+            } else {
+                errorMessage = error.localizedDescription
+            }
             showingError = true
         }
     }
