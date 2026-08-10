@@ -213,8 +213,14 @@ final class TimerEngine {
                 projectsByID[project.id] = project
             }
         }
-        WorkNoteCatalog.recordUsage(trimmed, for: Array(projectsByID.values), in: context)
-        if !pendingNoteLogs.isEmpty { save() }
+        do {
+            try WorkNoteCatalog.recordUsage(trimmed, for: Array(projectsByID.values), in: context)
+            if !pendingNoteLogs.isEmpty { try context.save() }
+        } catch {
+            context.rollback()
+            AppLog.persistence.error("作業内容の保存に失敗しました: \(error, privacy: .public)")
+            assertionFailure("作業内容の保存に失敗しました: \(error)")
+        }
         pendingNoteLogs = []
         dismissWorkNotePrompt()
     }

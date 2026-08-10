@@ -53,11 +53,11 @@ enum WorkNoteCatalog {
 
     /// 保存された作業内容を作成または取得し、今回使ったプロジェクトを関連へ累積する。
     /// 呼び出し側がログと同じ `ModelContext.save()` で確定する。
-    static func recordUsage(_ notes: [String], for projects: [Project], in context: ModelContext) {
+    static func recordUsage(_ notes: [String], for projects: [Project], in context: ModelContext) throws {
         let normalized = normalizedNotes(notes)
         guard !normalized.isEmpty else { return }
 
-        let catalog = (try? context.fetch(FetchDescriptor<WorkNote>())) ?? []
+        let catalog = try context.fetch(FetchDescriptor<WorkNote>())
         var byText: [String: WorkNote] = [:]
         for item in catalog where byText[WorkNoteRenaming.key(item.text)] == nil {
             byText[WorkNoteRenaming.key(item.text)] = item
@@ -76,8 +76,8 @@ enum WorkNoteCatalog {
         }
     }
 
-    static func recordUsage(_ notes: [String], for project: Project?, in context: ModelContext) {
-        recordUsage(notes, for: project.map { [$0] } ?? [], in: context)
+    static func recordUsage(_ notes: [String], for project: Project?, in context: ModelContext) throws {
+        try recordUsage(notes, for: project.map { [$0] } ?? [], in: context)
     }
 
     /// 管理画面の編集内容をログとカタログへ反映し、1回の save で確定する。

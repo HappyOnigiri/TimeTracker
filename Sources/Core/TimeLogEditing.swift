@@ -7,21 +7,29 @@ enum TimeLogEditing {
     /// 新規記録を追加する。
     static func add(project: Project, start: Date, end: Date, notes: [String] = [], in context: ModelContext) {
         let normalized = WorkNoteCatalog.normalizedNotes(notes)
-        context.insert(TimeLog(project: project, startDate: start, endDate: end, notes: normalized))
-        WorkNoteCatalog.recordUsage(normalized, for: project, in: context)
-        try? context.save()
+        do {
+            context.insert(TimeLog(project: project, startDate: start, endDate: end, notes: normalized))
+            try WorkNoteCatalog.recordUsage(normalized, for: project, in: context)
+            try context.save()
+        } catch {
+            context.rollback()
+        }
     }
 
     static func update( // swiftlint:disable:this function_parameter_count
         _ log: TimeLog, project: Project, start: Date, end: Date, notes: [String], in context: ModelContext
     ) {
-        log.project = project
-        log.startDate = start
-        log.endDate = end
-        let normalized = WorkNoteCatalog.normalizedNotes(notes)
-        log.notes = normalized
-        WorkNoteCatalog.recordUsage(normalized, for: project, in: context)
-        try? context.save()
+        do {
+            log.project = project
+            log.startDate = start
+            log.endDate = end
+            let normalized = WorkNoteCatalog.normalizedNotes(notes)
+            log.notes = normalized
+            try WorkNoteCatalog.recordUsage(normalized, for: project, in: context)
+            try context.save()
+        } catch {
+            context.rollback()
+        }
     }
 
     /// 既存記録の開始・終了のみ更新する（タイムラインのドラッグ確定など）。
@@ -33,9 +41,19 @@ enum TimeLogEditing {
 
     /// 同プロジェクト・同時間帯で記録を複製する。
     static func duplicate(_ log: TimeLog, in context: ModelContext) {
-        context.insert(TimeLog(project: log.project, startDate: log.startDate, endDate: log.endDate, notes: log.notes))
-        WorkNoteCatalog.recordUsage(log.notes, for: log.project, in: context)
-        try? context.save()
+        do {
+            let duplicate = TimeLog(
+                project: log.project,
+                startDate: log.startDate,
+                endDate: log.endDate,
+                notes: log.notes
+            )
+            context.insert(duplicate)
+            try WorkNoteCatalog.recordUsage(log.notes, for: log.project, in: context)
+            try context.save()
+        } catch {
+            context.rollback()
+        }
     }
 
     /// 記録を削除する。

@@ -57,9 +57,9 @@ struct WorkNoteCatalogTests {
         context.insert(projectA)
         context.insert(projectB)
 
-        WorkNoteCatalog.recordUsage([" 実装 "], for: projectA, in: context)
+        try WorkNoteCatalog.recordUsage([" 実装 "], for: projectA, in: context)
         try context.save()
-        WorkNoteCatalog.recordUsage(["実装"], for: projectB, in: context)
+        try WorkNoteCatalog.recordUsage(["実装"], for: projectB, in: context)
         try context.save()
 
         let catalog = try context.fetch(FetchDescriptor<WorkNote>())
