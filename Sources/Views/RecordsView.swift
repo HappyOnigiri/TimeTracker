@@ -8,6 +8,7 @@ struct RecordsView: View {
     @Query(sort: \TimeLog.startDate) private var logs: [TimeLog]
     @Query(sort: \Project.sortOrder) private var projects: [Project]
     @Query(sort: \ActiveSession.startDate) private var activeSessions: [ActiveSession]
+    @Query(sort: \WorkNote.text) private var workNotes: [WorkNote]
 
     /// 表示対象の月（その月の 1 日 0:00）。リスト・タイムライン共通。
     @State private var selectedMonth: Date
@@ -21,7 +22,7 @@ struct RecordsView: View {
         _selectedMonth = State(initialValue: selectedMonth)
     }
     @State private var timelineZoom: CGFloat = 48
-    @State private var showingNoteRename = false
+    @State private var showingNoteManagement = false
 
     /// 表示モード。リスト＝月単位の一覧、タイムライン＝月単位の横軸ドラッグ編集。
     private enum ViewMode: String, CaseIterable, Identifiable {
@@ -56,19 +57,14 @@ struct RecordsView: View {
                 }
             )
         }
-        .sheet(isPresented: $showingNoteRename) {
-            WorkNoteRenameView(logs: logs) { old, new in
-                WorkNoteRenaming.rename(from: old, to: new, in: logs, context: context)
-            }
+        .sheet(isPresented: $showingNoteManagement) {
+            WorkNoteManagementView()
         }
     }
 
-    /// 一括変更の対象になりうる作業内容が 1 つでもあるか（全期間・絞り込みなし）。
-    /// 候補一覧そのものはシート側で組むため、ここでは短絡評価だけに留める。
+    /// 管理対象のカタログ項目が 1 つでもあるか。
     private var hasNoteCandidates: Bool {
-        logs.contains { log in
-            log.notes.contains { !WorkNoteRenaming.key($0).isEmpty }
-        }
+        !workNotes.isEmpty
     }
 
     // MARK: - 操作部
@@ -112,17 +108,17 @@ struct RecordsView: View {
             )
 
             Button {
-                showingNoteRename = true
+                showingNoteManagement = true
             } label: {
-                Label("作業内容を一括変更", systemImage: "text.badge.checkmark")
+                Label("作業内容を管理", systemImage: "text.badge.checkmark")
             }
             // 操作部は横に詰まっているため、アイコンのみにして help で補う。
             .labelStyle(.iconOnly)
             .disabled(!hasNoteCandidates)
             .help(
                 hasNoteCandidates
-                    ? L10n.string("作業内容の文言を一括変更", locale: locale)
-                    : L10n.string("変更できる作業内容がありません", locale: locale)
+                    ? L10n.string("作業内容を管理", locale: locale)
+                    : L10n.string("管理できる作業内容がありません", locale: locale)
             )
         }
         .padding(.horizontal, 16)

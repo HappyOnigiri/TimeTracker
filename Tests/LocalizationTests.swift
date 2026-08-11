@@ -29,6 +29,50 @@ struct LocalizationTests {
         #expect(L10n.string("保存", locale: Locale(identifier: "zh-Hans")) == "保存")
     }
 
+    @Test("作業内容管理と同名統合の主要文言を3言語で取得できる")
+    func localizesWorkNoteManagement() {
+        let expectations: [(key: String.LocalizationValue, values: [String: String])] = [
+            (
+                "作業内容を管理",
+                ["en": "Manage Work Notes", "ja": "作業内容を管理", "zh-Hans": "管理工作内容"]
+            ),
+            (
+                "紐づくプロジェクト",
+                ["en": "Linked Projects", "ja": "紐づくプロジェクト", "zh-Hans": "关联项目"]
+            ),
+            ("すべて表示", ["en": "Show All", "ja": "すべて表示", "zh-Hans": "显示全部"]),
+            (
+                "管理する作業内容",
+                ["en": "Work Note to Manage", "ja": "管理する作業内容", "zh-Hans": "要管理的工作内容"]
+            ),
+            (
+                "同名の作業内容へ統合しますか？",
+                [
+                    "en": "Merge with the existing work note?",
+                    "ja": "同名の作業内容へ統合しますか？",
+                    "zh-Hans": "要合并到同名工作内容吗？"
+                ]
+            ),
+            (
+                "worknote.merge.confirmation",
+                [
+                    "en": "Merge “%1$@” into the existing “%2$@”. %3$d records will be updated, "
+                        + "and linked projects will be combined. This action cannot be undone.",
+                    "ja": "「%1$@」を既存の「%2$@」へ統合します。%3$d 件の記録が置き換わり、"
+                        + "紐づくプロジェクトは和集合になります。"
+                        + "この操作は取り消せません。",
+                    "zh-Hans": "将“%1$@”合并到现有的“%2$@”。"
+                        + "将更新 %3$d 条记录，并合并关联项目。此操作无法撤销。"
+                ]
+            )
+        ]
+        for expectation in expectations {
+            for (identifier, value) in expectation.values {
+                #expect(L10n.string(expectation.key, locale: Locale(identifier: identifier)) == value)
+            }
+        }
+    }
+
     @Test("言語名は現在の表示言語によらず自称表記になる")
     func displaysLanguageAutonyms() {
         for identifier in ["en", "ja", "zh-Hans"] {

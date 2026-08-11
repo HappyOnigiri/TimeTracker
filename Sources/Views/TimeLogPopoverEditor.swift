@@ -10,6 +10,7 @@ struct TimeLogPopoverEditor: View {
 
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \TimeLog.startDate) private var allLogs: [TimeLog]
+    @Query(sort: \WorkNote.text) private var workNotes: [WorkNote]
     @State private var selectedProjectID: UUID?
     @State private var startDate: Date
     @State private var endDate: Date
@@ -58,7 +59,9 @@ struct TimeLogPopoverEditor: View {
 
             WorkNoteInputView(
                 notes: $notes,
-                suggestions: WorkNoteSuggestions.candidates(from: allLogs)
+                workNotes: workNotes,
+                logs: allLogs,
+                projectIDs: selectedProjectID.map { Set([$0]) } ?? []
             )
 
             HStack {

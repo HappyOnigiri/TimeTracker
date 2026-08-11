@@ -118,9 +118,19 @@ enum ScreenshotSampleData {
         }
 
         try context.save()
+        try WorkNoteCatalog.bootstrap(in: context)
     }
 
     private static func removeExistingData(from context: ModelContext) throws {
+        let workNotes = try context.fetch(FetchDescriptor<WorkNote>())
+        for note in workNotes {
+            note.projects = []
+        }
+        try context.save()
+        for note in workNotes {
+            context.delete(note)
+        }
+        try context.save()
         for log in try context.fetch(FetchDescriptor<TimeLog>()) {
             context.delete(log)
         }
