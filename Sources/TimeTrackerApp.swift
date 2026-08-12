@@ -4,6 +4,8 @@ import SwiftUI
 /// メニューバー常駐のタイムトラッキングアプリのエントリポイント。
 @main
 struct TimeTrackerApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self)
+    private var appDelegate
     @AppStorage(AppSettingsKey.displayLanguage)
     private var displayLanguage = AppSettingsDefault.displayLanguage
     @State private var engine = TimerEngine()
@@ -11,17 +13,14 @@ struct TimeTrackerApp: App {
     @State private var navigation = AppNavigation()
     private let container: ModelContainer
 
-    /// テストホストとして起動されたか。
-    ///
-    /// `xcodebuild test` はアプリ本体をプロセス起動してテストバンドルを注入するため、
-    /// 通常起動と同じ初期化が走ってしまう。実アプリと同じサンドボックスコンテナで動く以上、
-    /// 既定のストアを開けば本番データを壊す（起動時の孤児ログ整理が計測中ログを潰す）。
-    /// ストアは in-memory にし、メニューバーにも常駐しない。
-    private let isTestHost: Bool
-
     init() {
+        // テストホストとして起動されたか。
+        //
+        // `xcodebuild test` はアプリ本体をプロセス起動してテストバンドルを注入するため、
+        // 通常起動と同じ初期化が走ってしまう。実アプリと同じサンドボックスコンテナで動く以上、
+        // 既定のストアを開けば本番データを壊す（起動時の孤児ログ整理が計測中ログを潰す）。
+        // ストアは in-memory にする。
         let isTestHost = ProcessInfo.processInfo.environment["XCTestBundlePath"] != nil
-        self.isTestHost = isTestHost
 
         if !isTestHost,
            let bundleID = Bundle.main.bundleIdentifier,
@@ -47,7 +46,10 @@ struct TimeTrackerApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra(isInserted: .constant(!isTestHost)) {
+        // `isInserted:` は付けない。挿入状態をバインディングで管理する形にすると
+        // MenuBarExtra が常駐シーンとして扱われず、ポップオーバーやメインウィンドウを
+        // 閉じた時点でアプリが終了してメニューバーから消える。
+        MenuBarExtra {
             MenuBarContentView()
                 .environment(engine)
                 .environment(navigation)
