@@ -18,9 +18,11 @@ struct ReadmeScreenshotTests {
         let logs = try context.fetch(FetchDescriptor<TimeLog>())
         let sessions = try context.fetch(FetchDescriptor<ActiveSession>())
 
+        let expectedSessions = ScreenshotSampleData.entries.count
+            + ScreenshotSampleData.untrackedActivePeriods.count
         #expect(projects.count == ScreenshotSampleData.projects.count)
         #expect(logs.count == ScreenshotSampleData.entries.count)
-        #expect(sessions.count == ScreenshotSampleData.entries.count)
+        #expect(sessions.count == expectedSessions)
         #expect(logs.allSatisfy { $0.endDate != nil })
         #expect(logs.allSatisfy { TestSupport.utcCalendar.component(.month, from: $0.startDate) == 7 })
     }

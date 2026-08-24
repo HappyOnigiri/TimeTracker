@@ -13,6 +13,13 @@ enum ScreenshotSampleData {
         let notes: [String]
     }
 
+    struct ActivePeriod {
+        let day: Int
+        let startHour: Int
+        let startMinute: Int
+        let durationMinutes: Int
+    }
+
     static let projects = [
         (name: "Webサイト改修", colorHex: "#4E9BFF"),
         (name: "モバイルアプリ", colorHex: "#FF8A4C"),
@@ -38,6 +45,14 @@ enum ScreenshotSampleData {
         Entry(projectIndex: 0, day: 24, startHour: 9, startMinute: 0, durationMinutes: 255, notes: ["実装"]),
         Entry(projectIndex: 1, day: 26, startHour: 10, startMinute: 15, durationMinutes: 240, notes: ["画面設計", "実装"]),
         Entry(projectIndex: 2, day: 27, startHour: 14, startMinute: 15, durationMinutes: 90, notes: ["定例ミーティング"])
+    ]
+
+    /// 計測し忘れの再現用に、対応する記録を持たないアクティブ時間帯。
+    /// タイムラインで「背景は光っているのに記録が無い」状態を見せるために使う。
+    static let untrackedActivePeriods = [
+        ActivePeriod(day: 11, startHour: 13, startMinute: 30, durationMinutes: 210),
+        ActivePeriod(day: 18, startHour: 9, startMinute: 30, durationMinutes: 150),
+        ActivePeriod(day: 24, startHour: 15, startMinute: 0, durationMinutes: 150)
     ]
 
     static func projects(for language: AppLanguage) -> [(name: String, colorHex: String)] {
@@ -101,11 +116,9 @@ enum ScreenshotSampleData {
 
         let month = sampleMonth(containing: now, calendar: calendar)
         for entry in localizedEntries {
-            guard let startDate = calendar.date(
-                bySettingHour: entry.startHour,
-                minute: entry.startMinute,
-                second: 0,
-                of: calendar.date(byAdding: .day, value: entry.day - 1, to: month) ?? month
+            guard let startDate = date(
+                day: entry.day, hour: entry.startHour, minute: entry.startMinute,
+                in: month, calendar: calendar
             ) else { continue }
             let endDate = startDate.addingTimeInterval(TimeInterval(entry.durationMinutes * 60))
             context.insert(TimeLog(
@@ -114,11 +127,30 @@ enum ScreenshotSampleData {
                 endDate: endDate,
                 notes: entry.notes
             ))
+            // 計測の前後にも PC を使っているのが自然なので、アクティブ時間は記録より広めに取る。
+            context.insert(ActiveSession(
+                startDate: startDate.addingTimeInterval(-15 * 60),
+                endDate: endDate.addingTimeInterval(25 * 60)
+            ))
+        }
+        for period in untrackedActivePeriods {
+            guard let startDate = date(
+                day: period.day, hour: period.startHour, minute: period.startMinute,
+                in: month, calendar: calendar
+            ) else { continue }
+            let endDate = startDate.addingTimeInterval(TimeInterval(period.durationMinutes * 60))
             context.insert(ActiveSession(startDate: startDate, endDate: endDate))
         }
 
         try context.save()
         try WorkNoteCatalog.bootstrap(in: context)
+    }
+
+    private static func date(
+        day: Int, hour: Int, minute: Int, in month: Date, calendar: Calendar
+    ) -> Date? {
+        guard let dayDate = calendar.date(byAdding: .day, value: day - 1, to: month) else { return nil }
+        return calendar.date(bySettingHour: hour, minute: minute, second: 0, of: dayDate)
     }
 
     private static func removeExistingData(from context: ModelContext) throws {
