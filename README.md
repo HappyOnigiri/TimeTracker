@@ -20,6 +20,7 @@ TimeTracker is a macOS menu bar app for tracking time by project.
 - Add work notes to records and edit them from the list or monthly timeline.
 - Review monthly tracked time and export reports as CSV files.
 - Manage projects and configure idle detection, launch at login, display language, and other preferences.
+- Back up all projects, records, work notes, and settings to a single file, and restore them from it.
 
 ## Privacy
 
