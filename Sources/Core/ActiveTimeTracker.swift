@@ -27,6 +27,24 @@ final class ActiveTimeTracker {
         startPolling()
     }
 
+    /// データが全置換される前に、開いているセッションを閉じてポーリングを止める。
+    ///
+    /// 全削除で SwiftData オブジェクトが消えるため、ポーリングが削除済みの
+    /// セッションへ書き込まないようにする。
+    func prepareForDataReplacement(now: Date = Date()) {
+        pollTimer?.invalidate()
+        pollTimer = nil
+        guard let session = fetchOpenSession() else { return }
+        session.endDate = max(now, session.startDate)
+        save()
+    }
+
+    /// データの全置換後にポーリングを再開する。
+    func resumeAfterDataReplacement() {
+        guard context != nil else { return }
+        startPolling()
+    }
+
     private func startPolling() {
         pollTimer?.invalidate()
         pollTimer = Timer.scheduledTimer(withTimeInterval: pollInterval, repeats: true) { [weak self] _ in

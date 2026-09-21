@@ -73,6 +73,37 @@ struct LocalizationTests {
         }
     }
 
+    @Test("バックアップの書式文字列を3言語で取得できる")
+    func localizesBackupMessages() {
+        let expectations: [(key: String.LocalizationValue, values: [String: String])] = [
+            (
+                "backup.saved",
+                ["en": "Saved: %@", "ja": "保存しました: %@", "zh-Hans": "已保存：%@"]
+            ),
+            (
+                "backup.failed",
+                [
+                    "en": "Could not export the backup: %@",
+                    "ja": "バックアップの書き出しに失敗しました: %@",
+                    "zh-Hans": "无法导出备份：%@"
+                ]
+            ),
+            (
+                "backup.restore_failed",
+                [
+                    "en": "Could not restore the backup: %@",
+                    "ja": "バックアップの復元に失敗しました: %@",
+                    "zh-Hans": "无法恢复备份：%@"
+                ]
+            )
+        ]
+        for expectation in expectations {
+            for (identifier, value) in expectation.values {
+                #expect(L10n.string(expectation.key, locale: Locale(identifier: identifier)) == value)
+            }
+        }
+    }
+
     @Test("言語名は現在の表示言語によらず自称表記になる")
     func displaysLanguageAutonyms() {
         for identifier in ["en", "ja", "zh-Hans"] {

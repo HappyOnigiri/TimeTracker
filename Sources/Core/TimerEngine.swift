@@ -113,6 +113,27 @@ final class TimerEngine {
         }
     }
 
+    // MARK: - データの全置換（バックアップからの復元）
+
+    /// データが全置換される前に、計測中のログへの参照をすべて断つ。
+    ///
+    /// 全削除で SwiftData オブジェクトが消えるため、開いているパネルや
+    /// `pendingNoteLogs` が削除済みのログを参照したままにならないようにする。
+    /// 復元直前に入力ダイアログを出さないよう、作業内容の入力は促さない。
+    func prepareForDataReplacement(now: Date = Date()) {
+        stopAll(now: now, promptForNotes: false)
+        pendingNoteLogs = []
+        dismissWorkNotePrompt()
+        dismissIdleNotification()
+        retroactiveStartPanel?.close()
+        retroactiveStartPanel = nil
+    }
+
+    /// データの全置換後に、計測状態の派生キャッシュを作り直す。
+    func reloadAfterDataReplacement() {
+        refreshRunningState()
+    }
+
     // MARK: - アイドル検知
 
     private func startIdleMonitoring() {

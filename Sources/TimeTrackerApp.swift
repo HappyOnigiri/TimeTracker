@@ -72,6 +72,8 @@ struct TimeTrackerApp: App {
         Window("TimeTracker", id: WindowID.main) {
             MainWindowView()
                 .environment(engine)
+                // 設定画面のバックアップ復元がアクティブ時間の記録を止めるため、ここでも注入する。
+                .environment(activeTimeTracker)
                 .environment(navigation)
                 .environment(\.locale, displayLanguage.locale)
                 .modelContainer(container)
