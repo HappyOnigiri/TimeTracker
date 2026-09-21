@@ -1,8 +1,12 @@
+import SwiftData
 import SwiftUI
 
 /// 設定画面。AppStorage で永続化する。
 struct SettingsView: View {
     @Environment(\.locale) private var locale
+    @Environment(\.modelContext) private var modelContext
+    @Environment(TimerEngine.self) private var engine
+    @Environment(ActiveTimeTracker.self) private var activeTimeTracker
     /// アイドル時間の設定範囲（分）。
     private static let thresholdRange = 0...120
 
@@ -27,6 +31,11 @@ struct SettingsView: View {
     @State private var launchAtLogin = LoginItemService.isEnabled
     @State private var launchAtLoginError: String?
 
+    /// バックアップ・復元の結果表示。エラーかどうかで色を変える。
+    @State private var backupMessage: String?
+    @State private var backupFailed = false
+    @State private var showingRestoreConfirmation = false
+
     /// アプリのバージョン（CFBundleShortVersionString）。Info.plist を唯一の真実の源とする。
     private static let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
 
@@ -49,6 +58,53 @@ struct SettingsView: View {
                 format: L10n.string("settings.change_failed", locale: locale),
                 locale: locale, error.localizedDescription
             )
+        }
+    }
+
+    /// 現在のデータと設定を 1 つの JSON ファイルへ書き出す。
+    private func exportBackup() {
+        switch BackupService.backup(from: modelContext, locale: locale) {
+        case .saved(let url):
+            backupMessage = String(
+                format: L10n.string("backup.saved", locale: locale),
+                locale: locale, url.lastPathComponent
+            )
+            backupFailed = false
+        case .cancelled:
+            backupMessage = nil
+        case .failed(let message):
+            backupMessage = String(
+                format: L10n.string("backup.failed", locale: locale),
+                locale: locale, message
+            )
+            backupFailed = true
+        }
+    }
+
+    /// バックアップで全置換する。削除済みのログを参照しないよう、置換の直前に計測を止める。
+    private func restoreBackup() {
+        var didStopTracking = false
+        let result = BackupService.restore(into: modelContext, locale: locale) {
+            engine.prepareForDataReplacement()
+            activeTimeTracker.prepareForDataReplacement()
+            didStopTracking = true
+        }
+        if didStopTracking {
+            engine.reloadAfterDataReplacement()
+            activeTimeTracker.resumeAfterDataReplacement()
+        }
+        switch result {
+        case .restored:
+            backupMessage = L10n.string("バックアップから復元しました。", locale: locale)
+            backupFailed = false
+        case .cancelled:
+            backupMessage = nil
+        case .failed(let message):
+            backupMessage = String(
+                format: L10n.string("backup.restore_failed", locale: locale),
+                locale: locale, message
+            )
+            backupFailed = true
         }
     }
 
@@ -118,6 +174,20 @@ struct SettingsView: View {
                         .foregroundStyle(.red)
                 }
             }
+            Section("データ") {
+                HStack {
+                    Button("バックアップを書き出す") { exportBackup() }
+                    Button("バックアップから復元…") { showingRestoreConfirmation = true }
+                }
+                Text("プロジェクト・記録・作業内容・設定をまとめて 1 つのファイルに保存し、そこから復元します。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if let backupMessage {
+                    Text(backupMessage)
+                        .font(.caption)
+                        .foregroundStyle(backupFailed ? Color.red : Color.secondary)
+                }
+            }
             Section("情報") {
                 HStack {
                     Text("バージョン")
@@ -129,6 +199,12 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .confirmationDialog("バックアップから復元しますか？", isPresented: $showingRestoreConfirmation) {
+            Button("復元", role: .destructive) { restoreBackup() }
+            Button("キャンセル", role: .cancel) {}
+        } message: {
+            Text("既存のデータと設定はすべて置き換えられます。計測中のタイマーは停止されます。この操作は取り消せません。")
+        }
         .onAppear {
             // 設定アプリ等で外部変更され得るため、表示のたびに実状態へ同期する。
             launchAtLogin = LoginItemService.isEnabled
@@ -138,4 +214,7 @@ struct SettingsView: View {
 
 #Preview {
     SettingsView()
+        .environment(TimerEngine())
+        .environment(ActiveTimeTracker())
+        .modelContainer(for: [Project.self, TimeLog.self, WorkNote.self, ActiveSession.self], inMemory: true)
 }
