@@ -123,7 +123,8 @@ struct LocalizationTests {
 
     @Test("月ラベルは選択言語の語順になる")
     func formatsLocalizedMonthLabels() {
-        let date = TestSupport.date(2026, 7, 1)
+        // monthLabel は現在のタイムゾーンで整形するため、どのタイムゾーンでも 7 月になる月央の UTC 正午を使う。
+        let date = TestSupport.date(2026, 7, 15, 12)
         #expect(RecordsView.monthLabel(for: date, locale: Locale(identifier: "en_US")) == "July 2026")
         #expect(RecordsView.monthLabel(for: date, locale: Locale(identifier: "ja_JP")) == "2026年7月")
         #expect(RecordsView.monthLabel(for: date, locale: Locale(identifier: "zh_Hans_CN")) == "2026年7月")
