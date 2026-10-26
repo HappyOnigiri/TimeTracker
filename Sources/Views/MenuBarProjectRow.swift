@@ -91,6 +91,9 @@ struct MenuBarProjectRow: View {
                     .accessibilityHint("過去の時刻から開始するオプションを表示します")
                 }
             }
+            // ellipsis の maxHeight: .infinity で行が縦に伸縮可能になるため、
+            // 展開アニメーション中に余った高さが行へ配分されないよう理想高さに固定する。
+            .fixedSize(horizontal: false, vertical: true)
             .background(
                 RoundedRectangle(cornerRadius: 4)
                     .fill(running
